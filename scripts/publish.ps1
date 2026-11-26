@@ -39,7 +39,7 @@ if ($hadLocalGit) {
 
 # Explicit allowlist: test downloads, personal backups, and browser data are never staged.
 $publicSources = @(
-  '.gitignore','package.json','index.html','app.js','core.js','markdown.js','exports.js','styles.css','favicon.svg','README.md',
+  '.gitignore','package.json','index.html','app.js','core.js','markdown.js','exports.js','styles.css','writer.css','favicon.svg','README.md',
   'data/news.json','docs/PRODUCT.md','docs/VALIDATION.md','.github/workflows/pages.yml',
   'scripts/serve.mjs','scripts/build.mjs','scripts/fetch_news.py','scripts/publish.ps1','scripts/check-ui.mjs',
   'tests/core.test.mjs','tests/markdown.test.mjs'

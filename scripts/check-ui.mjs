@@ -9,23 +9,24 @@ const context=await browser.newContext({viewport:{width:1440,height:1050},accept
 const page=await context.newPage(),errors=[];
 page.on('pageerror',error=>errors.push(error.message));
 page.on('dialog',dialog=>dialog.accept());
-const url='http://127.0.0.1:4173';
+const url=process.env.TEST_URL || 'http://127.0.0.1:4173';
 let checks=0;
 const checked=label=>{checks++;console.log('PASS '+label);};
 const click=selector=>page.locator(selector).first().click();
 const modal=()=>page.locator('.modal');
-async function waitClosed(){await page.locator('.modal').waitFor({state:'detached'});}
+async function waitClosed(){await page.waitForFunction(()=>!document.querySelector('.modal, .writer-page'));}
 try {
   await page.goto(url);await page.screenshot({path:'test-results/desktop-home.png',fullPage:true});
   assert.ok(await page.getByText('你正在预览示例空间',{exact:false}).count());checked('示例明确标注；首页正常加载');
   await click('[data-action=auth]');await page.locator('[name=name]').fill('测试探索者');await page.locator('[name=password]').fill('test-long-password-123');await page.locator('[name=confirm]').fill('test-long-password-123');await click('#auth-form [type=submit]');await waitClosed();
   assert.ok(await page.getByText('第一颗种子，等你种下').count());checked('创建加密空间，示例不混入个人数据');
-  await click('[data-action=journal]');
+  await click('[data-action=journal]');assert.ok(page.url().includes('#write/journal/'));assert.equal(await page.locator('.modal').count(),0);assert.ok(await page.locator('.writer-page').isVisible());checked('笔记进入独立写作路由，无弹窗');
   const experience='# 一个普通的好日子\n\n今天理解了 **注意力机制**。\n\n- 一个新问题\n- [x] 一个小发现\n\n> 多问一个为什么\n\n```python\nprint("hello")\n```\n\n| 现象 | 原因 |\n| --- | --- |\n| 变化 | 激励 |';
   await page.locator('[name=experience]').fill(experience);await page.locator('[name=thought]').fill('**我的判断**：理解需要证据。');
   await page.locator('.md-editor').first().locator('[data-mode=split]').click();
   assert.equal(await page.locator('.md-editor').first().locator('.md-preview h1').innerText(),'一个普通的好日子');
   assert.equal(await page.locator('.md-editor').first().locator('.md-preview table').count(),1);checked('网页 Markdown 编辑与实时对照预览');
+  await click('[data-action=writer-preview]');assert.ok(await page.locator('.writer-full-preview').isVisible());assert.equal(await page.locator('.writer-full-preview h1').first().innerText(),new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Shanghai'})+' · 生活手记');await click('[data-action=writer-preview]');assert.equal(await page.locator('[name=experience]').inputValue(),experience);checked('独立页面全文预览与返回编辑保留原文');
   const currentDownload=page.waitForEvent('download');await click('[data-action=export-current]');const current=await currentDownload;
   assert.match(current.suggestedFilename(),/^\d{4}-\d{2}-\d{2}_生活手记_/);assert.ok(current.suggestedFilename().endsWith('.md'));
   await current.saveAs('test-results/current.md');assert.ok((await readFile('test-results/current.md','utf8')).includes(experience));checked('未保存的当前篇章可以直接导出，保留 Markdown');
@@ -57,7 +58,15 @@ try {
     assert.equal(overflow,false,'手机横向溢出：'+route);
     if(route==='today'||route==='journal')await page.screenshot({path:`test-results/mobile-${route}.png`,fullPage:true});
   }checked('八个页面在手机宽度均无整体横向溢出');
-  await page.goto(url+'/#today');await click('[data-action=journal]');await page.screenshot({path:'test-results/mobile-editor.png',fullPage:true});assert.equal(await page.evaluate(()=>document.querySelector('.modal').scrollWidth>document.querySelector('.modal').clientWidth),false);await click('[data-action=close]');checked('手机 Markdown 编辑器布局');
+  await page.goto(url+'/#today');await click('[data-action=journal]');await page.screenshot({path:'test-results/mobile-editor.png',fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await click('[data-action=close]');checked('手机 Markdown 编辑器布局');
+  await page.setViewportSize({width:1440,height:1000});await page.goto(url+'/#library');await click('[data-action=capture]');
+  await page.locator('[name=title]').fill('独立写作与草稿恢复');await page.locator('[name=content]').fill('# 一页更宽的思考\n\n独立页面，安静写作。');await page.waitForTimeout(1200);
+  await page.reload();await page.locator('#auth-form').waitFor();await page.locator('[name=password]').fill('test-long-password-123');await click('#auth-form [type=submit]');await page.locator('.writer-page').waitFor();
+  assert.ok(page.url().includes('#write/entry/new'));await click('[data-action=draft-restore]');assert.equal(await page.locator('[name=title]').inputValue(),'独立写作与草稿恢复');assert.ok((await page.locator('[name=content]').inputValue()).includes('安静写作'));checked('刷新独立写作地址，登录后恢复原路线与加密草稿');
+  await click('[data-action=writer-preview]');await page.locator('.writer-topbar [data-action=writer-save]').click();await waitClosed();assert.equal(await page.locator('.writer-page').count(),0);checked('全文预览时从顶部保存，正确返回来源页面');
+  await page.goto(url+'/#library');await click('[data-action=capture]');await page.locator('[name=title]').fill('浏览器前进后退的草稿');await page.locator('[name=content]').fill('浏览器返回也能保管这段文字。');await page.waitForTimeout(1100);
+  await page.goBack();await page.locator('.writer-page').waitFor({state:'detached'});assert.ok(page.url().endsWith('#library'));await page.goForward();await page.locator('.writer-page').waitFor();await click('[data-action=draft-restore]');assert.equal(await page.locator('[name=title]').inputValue(),'浏览器前进后退的草稿');await click('[data-action=close]');checked('浏览器后退与前进支持写作路由，未保存内容可恢复');
+  await page.locator('#library-search').fill('');await page.locator('.entry-card').filter({hasText:'独立写作与草稿恢复'}).click();await click('[data-action=edit-entry]');await page.screenshot({path:'test-results/writer-entry.png',fullPage:true});await click('[data-action=entry-delete]');await page.locator('.modal [data-action=close]').first().click();assert.ok(await page.locator('.writer-page').isVisible());await page.locator('[name=content]').fill('取消删除后继续写作。');await page.waitForTimeout(1100);await click('[data-action=entry-delete]');await page.locator('.modal [data-action=delete-confirm]').click();await waitClosed();assert.equal(await page.locator('.entry-card').filter({hasText:'独立写作与草稿恢复'}).count(),0);checked('写作页面删除确认可取消；确认后返回并清除对应草稿');
   const other=await browser.newContext({viewport:{width:1280,height:900}}),restore=await other.newPage();restore.on('dialog',d=>d.accept());await restore.goto(url);await restore.locator('[data-action=auth]').first().click();await restore.locator('[data-action=import]').click();await restore.locator('[name=file]').setInputFiles('test-results/backup.vault.json');await restore.locator('[name=password]').fill('test-long-password-123');await restore.locator('#import-form [type=submit]').click();await restore.locator('.modal').waitFor({state:'detached'});await restore.goto(url+'/#journal');assert.ok((await restore.locator('.journal-card').innerText()).includes('理解需要证据'));await other.close();checked('全新浏览器设备从加密备份恢复完整记录');
   assert.deepEqual(errors,[]);checked('全程无未捕获 JavaScript 错误');
   console.log(`ALL ${checks} UI CHECKS PASSED`);

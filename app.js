@@ -32,6 +32,7 @@ const navs = [['today', 'sun', '今日'], ['journal', 'pen', '生活手记'], ['
 let data = freshData(), key = null, salt = null, storedRaw = null, preview = true, page = 'today', filter = '全部', query = '', domainFilter = '全部', news = { items: [] }, saveQueue = Promise.resolve(), saveFailure = null, conflict = false;
 let cloudToken = '', cloudSha = null, cloudTarget = '', lastActivity = Date.now(), lastFocus;
 let draftTimer, currentDraftKey = '', editorDirty = false, pendingSaves = 0;
+let writerState = null, pendingWriterRoute = '';
 
 const demo = freshData('探索者');
 demo.entries = [
@@ -133,12 +134,88 @@ function settingsView() {
 }
 
 function modal(title, subtitle, content, wide = false) {
+  if (/<form id="(?:journal|entry|weekly)-form"/.test(content)) { openWriter(title,subtitle,content); return; }
   flushDraft(); currentDraftKey = ''; editorDirty = false;
   lastFocus = document.activeElement;
   $('#modal-root').innerHTML = `<div class="modal-overlay"><section class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button class="modal-close icon-button" data-action="close" aria-label="关闭">${icon('close')}</button><div class="eyebrow">RIZHI · PERSONAL SPACE</div><h2 id="modal-title">${title}</h2><p class="modal-subtitle">${subtitle}</p>${content}</section></div>`;
   document.body.classList.add('modal-open'); enhanceEditor(); setTimeout(()=>$('#modal-root input:not([type="file"]), #modal-root textarea, #modal-root button[type="submit"], #modal-root .modal-close')?.focus(), 50);
 }
-function closeModal() { flushDraft(); currentDraftKey=''; editorDirty=false; $('#modal-root').innerHTML=''; document.body.classList.remove('modal-open'); lastFocus?.focus(); }
+function closeModal() {
+  if (!$('#modal-root').children.length && writerState) { exitWriter(); return; }
+  flushDraft(); currentDraftKey=''; editorDirty=false; $('#modal-root').innerHTML=''; document.body.classList.remove('modal-open');
+  const form=$('#writer-root form');if(form)currentDraftKey=draftKeyFor(form);
+  lastFocus?.focus();
+}
+
+function draftKeyFor(form) {return `${form.id}:${form.dataset.id || (form.id==='journal-form'?dayKey():'new')}:${form.dataset.quick||''}`;}
+function openWriter(title,subtitle,content) {
+  flushDraft(); currentDraftKey='';editorDirty=false;
+  const from=writerState?.from || (page.startsWith('write/') ? 'library' : page);
+  const holder=document.createElement('div');holder.innerHTML=content;
+  const form=$('form',holder),kind={'journal-form':'journal','entry-form':'entry','weekly-form':'weekly'}[form.id];
+  const route=`write/${kind}/${form.dataset.id||'new'}${form.dataset.quick==='true'?'/quick':''}`;
+  writerState={from,route,kind};
+  $('#modal-root').innerHTML='';document.body.classList.remove('modal-open');document.body.classList.add('writer-open');
+  const label={journal:'生活手记',entry:'知识笔记',weekly:'每周复盘'}[kind];
+  $('#writer-root').innerHTML=`<section class="writer-page"><header class="writer-topbar"><div class="writer-top-left"><button class="writer-back" data-action="close" aria-label="保存草稿并返回">${icon('arrow')}<span>返回</span></button><a class="writer-brand" href="#today">${icon('book')}日知<span>/</span><small>写作间</small></a></div><div class="writer-top-actions"><span id="writer-status">${icon('lock')}草稿自动加密保存</span><button class="btn outline" data-action="writer-preview">${icon('book')}<span>全文预览</span></button><button class="btn outline writer-download" data-action="export-current">${icon('download')}<span>导出 .md</span></button><button class="btn primary" data-action="writer-save" type="submit" form="${form.id}">${icon('check')}<span>保存笔记</span></button></div></header><main id="writer-main" class="writer-main" tabindex="-1"><div class="writer-intro"><div><span class="eyebrow">A QUIET PLACE TO THINK</span><h1>${title}<span>。</span></h1><p>${subtitle}</p></div><div class="writer-type">${icon(kind==='journal'?'pen':kind==='entry'?'leaf':'refresh')}<span>${label}</span></div></div><div id="writer-form-slot"></div><section class="writer-full-preview" hidden aria-label="全文预览"><div class="writer-preview-heading"><span class="eyebrow">READ YOUR OWN WORDS</span><span>你的文字，慢慢有了形状</span></div><article class="md-content"></article></section><div class="writer-bottom-note"><span>日有所记，知有所长。</span><span>Ctrl / ⌘ + S 保存 · Markdown 写作</span></div></main></section>`;
+  $('#writer-form-slot').append(form);
+  enhanceEditor();
+  form.classList.add('writer-form');
+  const fields=document.createElement('div');fields.className='writer-fields';
+  const rail=document.createElement('aside');rail.className='writer-rail';rail.setAttribute('aria-label','笔记信息');
+  const railHeading=document.createElement('div');railHeading.className='writer-rail-heading';railHeading.innerHTML=`<span>${icon('layers')}笔记信息</span><small>给想法一个位置</small>`;rail.append(railHeading);
+  const titleField=form.elements.namedItem('title');
+  if(titleField){const labelEl=titleField.closest('label');labelEl.classList.add('writer-title-field');fields.append(labelEl);titleField.placeholder=kind==='weekly'?'这周，我多懂了一点什么？':'为这一页，写一个标题…';titleField.setAttribute('aria-label','笔记标题');}
+  const primaryName={journal:'experience',entry:'content',weekly:'insight'}[kind];
+  const primary=form.elements.namedItem(primaryName)?.closest('label');
+  if(primary){primary.classList.add('writer-primary-field');fields.append(primary);}
+  const draftNote=$('.draft-status',form);if(draftNote)fields.prepend(draftNote);
+  const metaNames={journal:['date','mood'],entry:['domain','type','stage','tags','source'],weekly:['next']}[kind];
+  for(const name of metaNames){const field=form.elements.namedItem(name)?.closest('label');if(field)rail.append(field);}
+  const supplement=document.createElement('div');supplement.className='writer-supplement';
+  for(const node of [...form.children]){
+    if(node.classList.contains('form-row')){for(const child of [...node.children])supplement.append(child);node.remove();}
+    else if(node.matches('label, details'))supplement.append(node);
+  }
+  if(supplement.children.length){const h=document.createElement('h2');h.className='writer-section-title';h.textContent=kind==='journal'?'留一点感受，给未来的自己':kind==='entry'?'再想深一点':'让这次理解，有来有往';fields.append(h,supplement);}
+  const error=$('.form-error',form);if(error)fields.append(error);
+  const footer=$('.form-footer',form);if(footer)fields.append(footer);
+  const exportRow=$('.editor-local-export',form);if(exportRow)exportRow.remove();
+  rail.insertAdjacentHTML('beforeend',`<div class="writer-rail-tip">${icon('leaf')}<p>先把想法写下来。<br>不必一开始就很完整。</p><span>文字会在一次次回看中，<br>长出自己的分量。</span></div><div class="writer-shortcuts"><span><kbd>Ctrl</kbd> + <kbd>S</kbd> 保存</span><span><kbd>Ctrl</kbd> + <kbd>B</kbd> 粗体</span><span><kbd>Ctrl</kbd> + <kbd>I</kbd> 斜体</span></div>`);
+  form.append(fields,rail);
+  // Start long-form writing with a wide, roomy source editor.
+  const mainEditor=primary?.querySelector('.md-editor');if(mainEditor){mainEditor.dataset.mode='edit';mainEditor.querySelectorAll('.md-modes button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode==='edit')));}
+  if(location.hash!==`#${route}`)history.pushState({writerFrom:from},'',`#${route}`);
+  page=route;document.title=`${label} · 日知写作间`;
+  $('.skip-link').href='#writer-main';window.scrollTo({top:0});
+  setTimeout(()=>{const target=titleField||form.elements.namedItem(primaryName);target?.focus({preventScroll:true});},30);
+}
+function removeWriter() {
+  flushDraft();currentDraftKey='';editorDirty=false;writerState=null;$('#writer-root').innerHTML='';document.body.classList.remove('writer-open','writer-previewing');$('.skip-link').href='#main';
+}
+function exitWriter() {
+  const destination=writerState?.from||'library';removeWriter();history.replaceState(null,'',`#${destination}`);page=destination;render();window.scrollTo({top:0});
+}
+function routeWriter(route) {
+  const [,kind,id,mode]=route.split('/');
+  if(!['journal','entry','weekly'].includes(kind)||!id||!/^(new|[A-Za-z0-9-]{1,80})$/.test(id)){history.replaceState(null,'','#today');page='today';render();return;}
+  if(preview){pendingWriterRoute=route;page='today';render();authModal();return;}
+  const recordId=id==='new'?undefined:id;
+  if(recordId&&!({journal:data.journals,entry:data.entries,weekly:data.reviews}[kind]).some(r=>r.id===recordId)){toast('这篇记录不存在或已被删除。');history.replaceState(null,'','#library');page='library';render();return;}
+  if(kind==='journal')journalModal(recordId,mode==='quick');else if(kind==='entry')captureModal({id:recordId});else weeklyModal(recordId);
+}
+function previewWriter() {
+  const form=$('#writer-root form');if(!form)return;
+  const enabled=!document.body.classList.contains('writer-previewing');
+  if(enabled){const values=formDraft(form),kind={'journal-form':'journals','entry-form':'entries','weekly-form':'reviews'}[form.id],old=data[kind].find(r=>r.id===form.dataset.id)||{};
+    const record={...old,...values,date:values.date||old.date||dayKey(),title:values.title||'未命名笔记'};
+    if(kind==='entries')record.tags=String(values.tags||'').split(/[,，]/).map(t=>t.trim()).filter(Boolean);
+    const markdown=recordMarkdown(kind,record,{name:data.profile.name}).replace(/  \n导出时间：[^\n]*\n/,'\n');
+    $('.writer-full-preview article').innerHTML=renderMarkdown(markdown);
+  }
+  document.body.classList.toggle('writer-previewing',enabled);$('.writer-full-preview').hidden=!enabled;$('#writer-form-slot').hidden=enabled;
+  const button=$('[data-action="writer-preview"]');$('span',button).textContent=enabled?'返回编辑':'全文预览';button.setAttribute('aria-pressed',String(enabled));window.scrollTo({top:0});
+}
 function authModal(mode) {
   const exists = !!localStorage.getItem(VAULT_KEY), login = mode !== 'create' && exists;
   modal(login?'欢迎回到自己的空间':'从今天，开始积累', login?'输入密码，继续昨天种下的想法。':'给自己一处安静的角落。每天一点，慢慢生长。', `<form id="auth-form" data-login="${login}">${!login?'<label>怎么称呼你<input name="name" required maxlength="30" placeholder="你的名字或昵称" autocomplete="nickname"></label>':''}<label>${login?'空间密码':'设置空间密码（至少 10 位）'}<input name="password" type="password" required minlength="${login?1:10}" maxlength="200" autocomplete="${login?'current-password':'new-password'}" placeholder="${login?'输入你的密码':'请使用一个能记住的长密码'}"></label>${!login?'<label>再输入一次<input name="confirm" type="password" required minlength="10" maxlength="200" autocomplete="new-password" placeholder="确认密码"></label>':''}<p class="form-error" role="alert"></p><button class="btn primary full" type="submit">${login?'解锁我的空间':'开启我的第一天'} ${icon('arrow')}</button></form><div class="auth-note">${icon('lock')}<span>密码用于加密私人记录，无法找回。记录保存在此设备，可导出备份或连接私有仓库。离开页面或闲置 15 分钟后自动锁定。</span></div><button class="text-button auth-import" data-action="import">在新设备上？从加密备份恢复</button>`);
@@ -198,13 +275,17 @@ function exportRecord(kind,id,recordOverride) {
   toast('已下载 '+filename+'（可读明文）。');
 }
 
-function editableForm() { return $('#modal-root form:is(#journal-form,#entry-form,#weekly-form,#project-form)'); }
+function editableForm() {
+  if($('#modal-root .modal'))return $('#modal-root form:is(#journal-form,#entry-form,#weekly-form,#project-form)');
+  return $('#writer-root form:is(#journal-form,#entry-form,#weekly-form)');
+}
 function formDraft(form) {
   return Object.fromEntries([...new FormData(form)].filter(([name,value])=>typeof value==='string'&&name!=='password'));
 }
 function enhanceEditor() {
   const form=editableForm();if(!form)return;
-  currentDraftKey=`${form.id}:${form.dataset.id || (form.id==='journal-form'?dayKey():'new')}:${form.dataset.quick||''}`;
+  currentDraftKey=draftKeyFor(form);
+  if(form.dataset.enhanced)return;form.dataset.enhanced='true';
   const draft=data.drafts?.[currentDraftKey];
   const note=document.createElement('div');note.className='draft-status';
   note.innerHTML=draft?`<span>这里有一份未完成的加密草稿。</span>${btn('恢复草稿','draft-restore','text')}${btn('删除旧草稿','draft-discard','text')}`:'<span>草稿将自动加密保存在此浏览器，正式记录请点击下方保存。</span>';
@@ -251,7 +332,7 @@ function captureDraft() {
 }
 function flushDraft() {
   clearTimeout(draftTimer);
-  if(captureDraft())persist().then(()=>{const note=$('.draft-status');if(note)note.textContent='草稿已加密保存 · 正式记录请点击下方保存';}).catch(()=>{});
+  if(captureDraft())persist().then(()=>{const note=$('.draft-status');if(note)note.textContent='草稿已加密保存 · 正式记录请点击保存笔记';const status=$('#writer-status');if(status)status.innerHTML=icon('check')+'草稿已加密保存';}).catch(()=>{const status=$('#writer-status');if(status)status.textContent='保存失败，请导出当前内容';});
 }
 function restoreDraft() {
   const form=editableForm(),draft=data.drafts?.[currentDraftKey];if(!form||!draft)return;
@@ -275,7 +356,8 @@ async function lock() {
   if(preview)return;
   flushDraft();
   try { await saveQueue; } catch { if(!conflict) { toast('保存未成功，请先导出备份再锁定。'); return; } }
-  key=null;salt=null;cloudToken='';cloudSha=null;cloudTarget='';conflict=false;saveFailure=null;data=structuredClone(demo);preview=true;closeModal();render();authModal();
+  if(writerState){pendingWriterRoute=writerState.route;removeWriter();}
+  key=null;salt=null;cloudToken='';cloudSha=null;cloudTarget='';conflict=false;saveFailure=null;data=structuredClone(demo);preview=true;closeModal();page='today';render();authModal();
 }
 async function cloudSync(form, mode) {
   if(!requireAccount())return;
@@ -326,13 +408,21 @@ document.addEventListener('click',async(event)=>{
     else if(action==='project-delete')confirmDelete('projects',id);
     else if(action==='journal-delete')confirmDelete('journals',id);
     else if(action==='entry-delete')confirmDelete('entries',id);
-    else if(action==='delete-confirm'){if(!requireAccount())return;const kind=button.dataset.kind;if(!['projects','journals','entries'].includes(kind))return;data[kind]=data[kind].filter(x=>x.id!==id);closeModal();await saveAndRender('记录已删除。');}
+    else if(action==='delete-confirm'){
+      if(!requireAccount())return;const kind=button.dataset.kind;if(!['projects','journals','entries'].includes(kind))return;
+      const removed=data[kind].find(x=>x.id===id);data[kind]=data[kind].filter(x=>x.id!==id);
+      const formName={projects:'project-form',journals:'journal-form',entries:'entry-form'}[kind];
+      for(const draftKey of Object.keys(data.drafts||{}))if(draftKey.startsWith(`${formName}:${id}:`)||(kind==='journals'&&removed&&draftKey.startsWith(`journal-form:${removed.date}:`)))delete data.drafts[draftKey];
+      if(await saveAndRender('记录已删除。')){closeModal();if(writerState)exitWriter();}
+    }
     else if(action==='export-record')exportRecord(button.dataset.kind,id);
     else if(action==='export-current')exportCurrentForm();
     else if(action==='draft-restore')restoreDraft();
     else if(action==='draft-discard')discardDraft();
     else if(action==='md-mode')setEditorMode(button);
     else if(action==='md-format')formatEditor(button);
+    else if(action==='writer-preview')previewWriter();
+    else if(action==='writer-save'){if(document.body.classList.contains('writer-previewing'))previewWriter();}
     else if(action==='export')await exportVault();
     else if(action==='markdown')exportMarkdown();
     else if(action==='import')importModal();
@@ -345,6 +435,7 @@ document.addEventListener('input',event=>{
   if(event.target.matches('textarea'))updateEditor(event.target);
   editorDirty=true;clearTimeout(draftTimer);draftTimer=setTimeout(flushDraft,700);
   const note=$('.draft-status',form);if(note)note.textContent='正在自动保存草稿…';
+  const status=$('#writer-status');if(status)status.innerHTML=icon('lock')+'正在加密保存…';
 });
 document.addEventListener('change',event=>{if(event.target.closest('form')===editableForm()&&editableForm()){editorDirty=true;clearTimeout(draftTimer);draftTimer=setTimeout(flushDraft,700);}});
 document.addEventListener('input',event=>{if(event.target.id==='library-search'){query=event.target.value;const pos=event.target.selectionStart;render();$('#library-search').focus();$('#library-search').setSelectionRange(pos,pos);}});
@@ -356,7 +447,9 @@ document.addEventListener('submit',async(event)=>{
       const password=String(fd.get('password')||'');
       if(form.dataset.login==='true'){storedRaw=localStorage.getItem(VAULT_KEY);const result=await unseal(JSON.parse(storedRaw),password);data=result.data;key=result.key;salt=result.salt;}
       else {if(localStorage.getItem(VAULT_KEY))throw new Error('已有空间，请先登录或从备份恢复。');if(password.length<10)throw new Error('请至少设置 10 位密码。');if(password!==String(fd.get('confirm')))throw new Error('两次输入的密码不一致。');if(!v('name'))throw new Error('请写一个称呼。');const result=await createKey(password);key=result.key;salt=result.salt;data=freshData(v('name'));storedRaw=null;}
-      preview=false;conflict=false;saveFailure=null;lastActivity=Date.now();await persist();closeModal();page='today';location.hash='today';render();toast('欢迎回到自己的节奏。');
+      preview=false;conflict=false;saveFailure=null;lastActivity=Date.now();await persist();closeModal();
+      const requested=pendingWriterRoute||(location.hash.startsWith('#write/')?location.hash.slice(1):'');pendingWriterRoute='';
+      if(requested)routeWriter(requested);else{page='today';location.hash='today';render();}toast('欢迎回到自己的节奏。');
     }else if(form.id==='import-form'||form.id==='cloud-restore-form') {
       let vault,sha;
       if(form.id==='import-form'){const file=fd.get('file');if(!file?.size)throw new Error('请选择备份文件。');if(file.size>28000000)throw new Error('文件过大，最多支持 20 MB 的记录。');vault=JSON.parse(await file.text());}else {vault=form._remote.vault;sha=form._remote.sha;}
@@ -387,15 +480,24 @@ document.addEventListener('submit',async(event)=>{
 document.addEventListener('keydown',event=>{
   if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='s'&&editableForm()){event.preventDefault();editableForm().requestSubmit();return;}
   if((event.metaKey||event.ctrlKey)&&['b','i'].includes(event.key.toLowerCase())&&event.target.matches('.md-editor textarea')){event.preventDefault();const editor=event.target.closest('.md-editor');formatEditor($(`[data-format="${event.key.toLowerCase()==='b'?'bold':'italic'}"]`,editor));return;}
-  if(event.key==='Escape')closeModal();
+  if(event.key==='Escape'&&$('#modal-root .modal'))closeModal();
   if(event.key==='Tab'&&$('.modal')){const items=[...$('.modal').querySelectorAll('button:not([disabled]), a, input, textarea, select, summary')].filter(el=>el.getClientRects().length);const first=items[0],last=items.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}
   if((event.metaKey||event.ctrlKey)&&event.key==='k'){event.preventDefault();if(!$('.modal')){$('[data-action="search"]')?.click();}}
 });
+document.addEventListener('invalid',event=>{
+  if(event.target.closest('.writer-form')&&document.body.classList.contains('writer-previewing'))previewWriter();
+},true);
 ['pointerdown','keydown','touchstart'].forEach(name=>document.addEventListener(name,()=>{lastActivity=Date.now();},{passive:true}));
 setInterval(()=>{if(!preview&&Date.now()-lastActivity>15*60000)lock();},30000);
 window.addEventListener('storage',event=>{if(event.key===VAULT_KEY&&!preview&&event.newValue!==storedRaw){conflict=true;toast('另一标签页更新了记录，请锁定后重新登录，避免覆盖。');}});
 window.addEventListener('beforeunload',event=>{if(saveFailure||pendingSaves||editorDirty){flushDraft();event.preventDefault();event.returnValue='内容仍在保存，请稍等后离开。';}});
-window.addEventListener('hashchange',()=>{page=location.hash.slice(1)||'today';render();window.scrollTo({top:0});});
-page=location.hash.slice(1)||'today';render();
+window.addEventListener('hashchange',()=>{
+  const route=location.hash.slice(1)||'today';
+  if(writerState?.route===route)return;
+  if(writerState)removeWriter();
+  if(route.startsWith('write/'))routeWriter(route);else{page=route;render();window.scrollTo({top:0});}
+});
+const initialRoute=location.hash.slice(1)||'today';
+if(initialRoute.startsWith('write/')){pendingWriterRoute=initialRoute;page='today';render();authModal();}else{page=initialRoute;render();}
 fetch('./data/news.json').then(r=>r.ok?r.json():Promise.reject()).then(result=>{news=result;if(page==='world')render();}).catch(()=>{});
-if(localStorage.getItem(VAULT_KEY))authModal();
+if(localStorage.getItem(VAULT_KEY)&&!$('#modal-root .modal'))authModal();
