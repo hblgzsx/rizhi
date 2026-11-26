@@ -39,10 +39,10 @@ if ($hadLocalGit) {
 
 # Explicit allowlist: test downloads, personal backups, and browser data are never staged.
 $publicSources = @(
-  '.gitignore','package.json','index.html','app.js','core.js','markdown.js','exports.js','sources.js','styles.css','writer.css','favicon.svg','README.md',
-  'data/news.json','docs/PRODUCT.md','docs/VALIDATION.md','.github/workflows/pages.yml',
-  'scripts/serve.mjs','scripts/build.mjs','scripts/fetch_news.py','scripts/publish.ps1','scripts/check-ui.mjs','scripts/check-drafts.mjs',
-  'tests/core.test.mjs','tests/markdown.test.mjs','tests/drafts.test.mjs','tests/sources.test.mjs'
+  '.gitignore','package.json','index.html','app.js','core.js','markdown.js','exports.js','sources.js','hotboards.js','styles.css','writer.css','favicon.svg','README.md',
+  'data/news.json','data/hotboards.json','docs/PRODUCT.md','docs/VALIDATION.md','.github/workflows/pages.yml',
+  'scripts/serve.mjs','scripts/build.mjs','scripts/fetch_news.py','scripts/fetch_hotboards.py','scripts/publish.ps1','scripts/check-ui.mjs','scripts/check-drafts.mjs','scripts/check-hotboards.mjs',
+  'tests/core.test.mjs','tests/markdown.test.mjs','tests/drafts.test.mjs','tests/sources.test.mjs','tests/hotboards.test.mjs','tests/test_hotboards.py'
 )
 $previouslyStaged = & git diff --cached --name-only
 if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect existing staged files.' }

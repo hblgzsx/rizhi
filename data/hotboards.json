@@ -1,0 +1,614 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-26T09:58:18.568311+00:00",
+  "boards": [
+    {
+      "id": "douyin",
+      "name": "抖音",
+      "label": "热点榜",
+      "url": "https://www.douyin.com/",
+      "checkedAt": "2026-11-26T09:58:18.568311+00:00",
+      "updatedAt": "2026-11-26T09:58:22.873040+00:00",
+      "status": "ready",
+      "items": [
+        {
+          "rank": 1,
+          "title": "开拓者116:111击败马刺",
+          "url": "https://www.douyin.com/search/%E5%BC%80%E6%8B%93%E8%80%85116%3A111%E5%87%BB%E8%B4%A5%E9%A9%AC%E5%88%BA",
+          "metric": "1188.7万 热度",
+          "author": ""
+        },
+        {
+          "rank": 2,
+          "title": "提前预习圣诞穿搭",
+          "url": "https://www.douyin.com/search/%E6%8F%90%E5%89%8D%E9%A2%84%E4%B9%A0%E5%9C%A3%E8%AF%9E%E7%A9%BF%E6%90%AD",
+          "metric": "1161.9万 热度",
+          "author": ""
+        },
+        {
+          "rank": 3,
+          "title": "深圳奇迹属于奋斗者",
+          "url": "https://www.douyin.com/search/%E6%B7%B1%E5%9C%B3%E5%A5%87%E8%BF%B9%E5%B1%9E%E4%BA%8E%E5%A5%8B%E6%96%97%E8%80%85",
+          "metric": "1138.1万 热度",
+          "author": ""
+        },
+        {
+          "rank": 4,
+          "title": "已被这届烟火榜美食选中",
+          "url": "https://www.douyin.com/search/%E5%B7%B2%E8%A2%AB%E8%BF%99%E5%B1%8A%E7%83%9F%E7%81%AB%E6%A6%9C%E7%BE%8E%E9%A3%9F%E9%80%89%E4%B8%AD",
+          "metric": "1109.0万 热度",
+          "author": ""
+        },
+        {
+          "rank": 5,
+          "title": "76人111:104热火",
+          "url": "https://www.douyin.com/search/76%E4%BA%BA111%3A104%E7%83%AD%E7%81%AB",
+          "metric": "1053.2万 热度",
+          "author": ""
+        },
+        {
+          "rank": 6,
+          "title": "清迈的天灯节也太美了吧",
+          "url": "https://www.douyin.com/search/%E6%B8%85%E8%BF%88%E7%9A%84%E5%A4%A9%E7%81%AF%E8%8A%82%E4%B9%9F%E5%A4%AA%E7%BE%8E%E4%BA%86%E5%90%A7",
+          "metric": "1045.8万 热度",
+          "author": ""
+        },
+        {
+          "rank": 7,
+          "title": "同频朋友是最好的生日礼物",
+          "url": "https://www.douyin.com/search/%E5%90%8C%E9%A2%91%E6%9C%8B%E5%8F%8B%E6%98%AF%E6%9C%80%E5%A5%BD%E7%9A%84%E7%94%9F%E6%97%A5%E7%A4%BC%E7%89%A9",
+          "metric": "926.8万 热度",
+          "author": ""
+        },
+        {
+          "rank": 8,
+          "title": "评论区摄影作品点评大赛开启",
+          "url": "https://www.douyin.com/search/%E8%AF%84%E8%AE%BA%E5%8C%BA%E6%91%84%E5%BD%B1%E4%BD%9C%E5%93%81%E7%82%B9%E8%AF%84%E5%A4%A7%E8%B5%9B%E5%BC%80%E5%90%AF",
+          "metric": "925.0万 热度",
+          "author": ""
+        },
+        {
+          "rank": 9,
+          "title": "央视网评金价大跌下的购金热",
+          "url": "https://www.douyin.com/search/%E5%A4%AE%E8%A7%86%E7%BD%91%E8%AF%84%E9%87%91%E4%BB%B7%E5%A4%A7%E8%B7%8C%E4%B8%8B%E7%9A%84%E8%B4%AD%E9%87%91%E7%83%AD",
+          "metric": "918.1万 热度",
+          "author": ""
+        },
+        {
+          "rank": 10,
+          "title": "11月26日24时油价下调",
+          "url": "https://www.douyin.com/search/11%E6%9C%8826%E6%97%A524%E6%97%B6%E6%B2%B9%E4%BB%B7%E4%B8%8B%E8%B0%83",
+          "metric": "915.6万 热度",
+          "author": ""
+        },
+        {
+          "rank": 11,
+          "title": "蔡磊回应病情进入终末期",
+          "url": "https://www.douyin.com/search/%E8%94%A1%E7%A3%8A%E5%9B%9E%E5%BA%94%E7%97%85%E6%83%85%E8%BF%9B%E5%85%A5%E7%BB%88%E6%9C%AB%E6%9C%9F",
+          "metric": "914.1万 热度",
+          "author": ""
+        },
+        {
+          "rank": 12,
+          "title": "中方回应美国称对华加征关税",
+          "url": "https://www.douyin.com/search/%E4%B8%AD%E6%96%B9%E5%9B%9E%E5%BA%94%E7%BE%8E%E5%9B%BD%E7%A7%B0%E5%AF%B9%E5%8D%8E%E5%8A%A0%E5%BE%81%E5%85%B3%E7%A8%8E",
+          "metric": "905.1万 热度",
+          "author": ""
+        },
+        {
+          "rank": 13,
+          "title": "淡人一周穿搭合集",
+          "url": "https://www.douyin.com/search/%E6%B7%A1%E4%BA%BA%E4%B8%80%E5%91%A8%E7%A9%BF%E6%90%AD%E5%90%88%E9%9B%86",
+          "metric": "901.4万 热度",
+          "author": ""
+        },
+        {
+          "rank": 14,
+          "title": "太原金屋大厦火灾细节披露",
+          "url": "https://www.douyin.com/search/%E5%A4%AA%E5%8E%9F%E9%87%91%E5%B1%8B%E5%A4%A7%E5%8E%A6%E7%81%AB%E7%81%BE%E7%BB%86%E8%8A%82%E6%8A%AB%E9%9C%B2",
+          "metric": "897.1万 热度",
+          "author": ""
+        },
+        {
+          "rank": 15,
+          "title": "曼联客场2:2战平葡萄牙体育",
+          "url": "https://www.douyin.com/search/%E6%9B%BC%E8%81%94%E5%AE%A2%E5%9C%BA2%3A2%E6%88%98%E5%B9%B3%E8%91%A1%E8%90%84%E7%89%99%E4%BD%93%E8%82%B2",
+          "metric": "887.4万 热度",
+          "author": ""
+        }
+      ],
+      "provider": "平台公开榜单",
+      "providerUrl": "https://www.douyin.com/aweme/v1/web/hot/search/list/?device_platform=webapp&aid=6383&channel=channel_pc_web&detail_list=1",
+      "message": ""
+    },
+    {
+      "id": "weibo",
+      "name": "微博",
+      "label": "热搜榜",
+      "url": "https://s.weibo.com/top/summary/",
+      "checkedAt": "2026-11-26T09:58:18.568311+00:00",
+      "updatedAt": "2026-11-26T09:50:30.629978+00:00",
+      "status": "ready",
+      "items": [
+        {
+          "rank": 1,
+          "title": "生父出轨女友踢死幼童求生母谅解",
+          "url": "https://s.weibo.com/weibo?q=%23%E7%94%9F%E7%88%B6%E5%87%BA%E8%BD%A8%E5%A5%B3%E5%8F%8B%E8%B8%A2%E6%AD%BB%E5%B9%BC%E7%AB%A5%E6%B1%82%E7%94%9F%E6%AF%8D%E8%B0%85%E8%A7%A3%23",
+          "metric": "116.3万 热度",
+          "author": ""
+        },
+        {
+          "rank": 2,
+          "title": "后会友期才播到第8天",
+          "url": "https://s.weibo.com/weibo?q=%E5%90%8E%E4%BC%9A%E5%8F%8B%E6%9C%9F%E6%89%8D%E6%92%AD%E5%88%B0%E7%AC%AC8%E5%A4%A9",
+          "metric": "105.3万 热度",
+          "author": ""
+        },
+        {
+          "rank": 3,
+          "title": "2026世界市长对话乌鲁木齐",
+          "url": "https://s.weibo.com/weibo?q=%232026%E4%B8%96%E7%95%8C%E5%B8%82%E9%95%BF%E5%AF%B9%E8%AF%9D%E4%B9%8C%E9%B2%81%E6%9C%A8%E9%BD%90%23",
+          "metric": "82.9万 热度",
+          "author": ""
+        },
+        {
+          "rank": 4,
+          "title": "厉娜口碑",
+          "url": "https://s.weibo.com/weibo?q=%E5%8E%89%E5%A8%9C%E5%8F%A3%E7%A2%91",
+          "metric": "81.0万 热度",
+          "author": ""
+        },
+        {
+          "rank": 5,
+          "title": "普京深圳住的总统套房17万一晚",
+          "url": "https://s.weibo.com/weibo?q=%23%E6%99%AE%E4%BA%AC%E6%B7%B1%E5%9C%B3%E4%BD%8F%E7%9A%84%E6%80%BB%E7%BB%9F%E5%A5%97%E6%88%BF17%E4%B8%87%E4%B8%80%E6%99%9A%23",
+          "metric": "69.0万 热度",
+          "author": ""
+        },
+        {
+          "rank": 6,
+          "title": "文吉儿0镜头原因",
+          "url": "https://s.weibo.com/weibo?q=%23%E6%96%87%E5%90%89%E5%84%BF0%E9%95%9C%E5%A4%B4%E5%8E%9F%E5%9B%A0%23",
+          "metric": "64.6万 热度",
+          "author": ""
+        },
+        {
+          "rank": 7,
+          "title": "被AI融脸后永远删不干净",
+          "url": "https://s.weibo.com/weibo?q=%23%E8%A2%ABAI%E8%9E%8D%E8%84%B8%E5%90%8E%E6%B0%B8%E8%BF%9C%E5%88%A0%E4%B8%8D%E5%B9%B2%E5%87%80%23",
+          "metric": "50.5万 热度",
+          "author": ""
+        },
+        {
+          "rank": 8,
+          "title": "曝BLG挽留Daeny",
+          "url": "https://s.weibo.com/weibo?q=%23%E6%9B%9DBLG%E6%8C%BD%E7%95%99Daeny%23",
+          "metric": "48.7万 热度",
+          "author": ""
+        },
+        {
+          "rank": 9,
+          "title": "妻子说蔡磊做的事对家庭是毁灭的",
+          "url": "https://s.weibo.com/weibo?q=%23%E5%A6%BB%E5%AD%90%E8%AF%B4%E8%94%A1%E7%A3%8A%E5%81%9A%E7%9A%84%E4%BA%8B%E5%AF%B9%E5%AE%B6%E5%BA%AD%E6%98%AF%E6%AF%81%E7%81%AD%E7%9A%84%23",
+          "metric": "32.0万 热度",
+          "author": ""
+        },
+        {
+          "rank": 10,
+          "title": "油价27日起下调",
+          "url": "https://s.weibo.com/weibo?q=%23%E6%B2%B9%E4%BB%B727%E6%97%A5%E8%B5%B7%E4%B8%8B%E8%B0%83%23",
+          "metric": "31.6万 热度",
+          "author": ""
+        },
+        {
+          "rank": 11,
+          "title": "许飞 社会性清白",
+          "url": "https://s.weibo.com/weibo?q=%E8%AE%B8%E9%A3%9E+%E7%A4%BE%E4%BC%9A%E6%80%A7%E6%B8%85%E7%99%BD",
+          "metric": "31.3万 热度",
+          "author": ""
+        },
+        {
+          "rank": 12,
+          "title": "向华强不允许女儿来见他",
+          "url": "https://s.weibo.com/weibo?q=%23%E5%90%91%E5%8D%8E%E5%BC%BA%E4%B8%8D%E5%85%81%E8%AE%B8%E5%A5%B3%E5%84%BF%E6%9D%A5%E8%A7%81%E4%BB%96%23",
+          "metric": "30.8万 热度",
+          "author": ""
+        },
+        {
+          "rank": 13,
+          "title": "王楚然 美成这种程度的我只想下跪",
+          "url": "https://s.weibo.com/weibo?q=%E7%8E%8B%E6%A5%9A%E7%84%B6+%E7%BE%8E%E6%88%90%E8%BF%99%E7%A7%8D%E7%A8%8B%E5%BA%A6%E7%9A%84%E6%88%91%E5%8F%AA%E6%83%B3%E4%B8%8B%E8%B7%AA",
+          "metric": "30.2万 热度",
+          "author": ""
+        },
+        {
+          "rank": 14,
+          "title": "日本40层大楼拆除居民未察觉",
+          "url": "https://s.weibo.com/weibo?q=%E6%97%A5%E6%9C%AC40%E5%B1%82%E5%A4%A7%E6%A5%BC%E6%8B%86%E9%99%A4%E5%B1%85%E6%B0%91%E6%9C%AA%E5%AF%9F%E8%A7%89",
+          "metric": "29.5万 热度",
+          "author": ""
+        },
+        {
+          "rank": 15,
+          "title": "王鹤棣打电话感谢厉娜喜欢自己的剧",
+          "url": "https://s.weibo.com/weibo?q=%23%E7%8E%8B%E9%B9%A4%E6%A3%A3%E6%89%93%E7%94%B5%E8%AF%9D%E6%84%9F%E8%B0%A2%E5%8E%89%E5%A8%9C%E5%96%9C%E6%AC%A2%E8%87%AA%E5%B7%B1%E7%9A%84%E5%89%A7%23",
+          "metric": "29.1万 热度",
+          "author": ""
+        }
+      ],
+      "provider": "公开聚合快照 · solarhell",
+      "providerUrl": "https://github.com/solarhell/hot-search-crawler",
+      "message": ""
+    },
+    {
+      "id": "bilibili",
+      "name": "B 站",
+      "label": "全站排行榜",
+      "url": "https://www.bilibili.com/v/popular/rank/all",
+      "checkedAt": "2026-11-26T09:58:18.568311+00:00",
+      "updatedAt": "2026-11-26T09:57:24.472492+00:00",
+      "status": "stale",
+      "items": [
+        {
+          "rank": 1,
+          "title": "当我用AI续写爱情公寓4关谷悠悠婚礼【AI全民制作人】",
+          "url": "https://www.bilibili.com/video/BV1atse6EEfx",
+          "metric": "1019.2万 播放",
+          "author": "Nero_闪灵"
+        },
+        {
+          "rank": 2,
+          "title": "你从未见过的硬核开箱视频！",
+          "url": "https://www.bilibili.com/video/BV1QAypzyE7B",
+          "metric": "166.8万 播放",
+          "author": "戴律请回答"
+        },
+        {
+          "rank": 3,
+          "title": "“别人过得好 你就要扣自己的分吗”",
+          "url": "https://www.bilibili.com/video/BV1oSyJz1EiC",
+          "metric": "386.4万 播放",
+          "author": "毕检索"
+        },
+        {
+          "rank": 4,
+          "title": "【火影十一年 神临时刻】漩涡鸣人[阳之力]即将登场！",
+          "url": "https://www.bilibili.com/video/BV1qYyRz5EdM",
+          "metric": "527.1万 播放",
+          "author": "火影忍者手游情报君"
+        },
+        {
+          "rank": 5,
+          "title": "《绝区零》挽昼角色展示 | 日陨之前",
+          "url": "https://www.bilibili.com/video/BV1esyZz7ExF",
+          "metric": "191.6万 播放",
+          "author": "绝区零"
+        },
+        {
+          "rank": 6,
+          "title": "游戏自由度太高也不是什么好事",
+          "url": "https://www.bilibili.com/video/BV1NzyHzwEKB",
+          "metric": "542.1万 播放",
+          "author": "就叫Re"
+        },
+        {
+          "rank": 7,
+          "title": "我想回家吃饭（两小时大电影）",
+          "url": "https://www.bilibili.com/video/BV1LoyGzZEX8",
+          "metric": "289.7万 播放",
+          "author": "呖猪猫meme"
+        },
+        {
+          "rank": 8,
+          "title": "考公务员很难，但是为人民服务却很容易！",
+          "url": "https://www.bilibili.com/video/BV1uyyazBEUA",
+          "metric": "223.8万 播放",
+          "author": "小阳yx"
+        },
+        {
+          "rank": 9,
+          "title": "扎堆产卵 同类相食！蝗虫诡异行为原理被中国科学家破解！【主播说三农】",
+          "url": "https://www.bilibili.com/video/BV121yjzQEWf",
+          "metric": "230.4万 播放",
+          "author": "央视农业"
+        },
+        {
+          "rank": 10,
+          "title": "我们成为英雄，哪怕只有一天",
+          "url": "https://www.bilibili.com/video/BV1ioyGzZET8",
+          "metric": "263.8万 播放",
+          "author": "怪东西StrangeStuff"
+        },
+        {
+          "rank": 11,
+          "title": "对质",
+          "url": "https://www.bilibili.com/video/BV1szyHzwEg9",
+          "metric": "240.5万 播放",
+          "author": "安吉-AnJ"
+        },
+        {
+          "rank": 12,
+          "title": "153分钟超长大合集！【末日来临，我从吃丧尸开始成神！】第1季+第2季完整版【AI全民制作人】",
+          "url": "https://www.bilibili.com/video/BV16nyXzyEuQ",
+          "metric": "145.6万 播放",
+          "author": "饭都还没吃饱"
+        },
+        {
+          "rank": 13,
+          "title": "去了一趟纽约。",
+          "url": "https://www.bilibili.com/video/BV1tCyzzpEB6",
+          "metric": "191.4万 播放",
+          "author": "影视飓风"
+        },
+        {
+          "rank": 14,
+          "title": "“为人民服务”",
+          "url": "https://www.bilibili.com/video/BV11yyZzeET3",
+          "metric": "73.4万 播放",
+          "author": "云南交警"
+        },
+        {
+          "rank": 15,
+          "title": "刘晓艳：“你能考过就是「烂奇迹」”",
+          "url": "https://www.bilibili.com/video/BV1AZyEzpEAT",
+          "metric": "112.6万 播放",
+          "author": "Dieorite"
+        }
+      ],
+      "provider": "平台公开榜单",
+      "providerUrl": "https://api.bilibili.com/x/web-interface/ranking/v2?rid=0&type=all",
+      "message": "本次更新未成功，保留上次快照。"
+    },
+    {
+      "id": "xiaohongshu",
+      "name": "小红书",
+      "label": "热点榜",
+      "url": "https://www.xiaohongshu.com/",
+      "checkedAt": "2026-11-26T09:58:18.568311+00:00",
+      "updatedAt": null,
+      "status": "unavailable",
+      "items": [],
+      "provider": "",
+      "providerUrl": "",
+      "message": "本次未取得有效榜单，可前往平台查看。"
+    },
+    {
+      "id": "zhihu",
+      "name": "知乎",
+      "label": "热榜",
+      "url": "https://www.zhihu.com/hot",
+      "checkedAt": "2026-11-26T09:58:18.568311+00:00",
+      "updatedAt": "2026-11-26T09:58:20.479954+00:00",
+      "status": "ready",
+      "items": [
+        {
+          "rank": 1,
+          "title": "如何看待黎曼猜想证明已被压缩 99.5% 到 7.6 万行？",
+          "url": "https://www.zhihu.com/question/2109221701389239407",
+          "metric": "1696 万热度",
+          "author": ""
+        },
+        {
+          "rank": 2,
+          "title": "如何看待美国陆军在爱荷华州就地受控引爆约 5 吨劣化叠氮化铅？这对人和环境的影响有多大？",
+          "url": "https://www.zhihu.com/question/2108344069512492110",
+          "metric": "1393 万热度",
+          "author": ""
+        },
+        {
+          "rank": 3,
+          "title": "多家机器人公司进入破产清算，两年近30家机器人公司倒闭，机器人赛道融资火热，为什么还会出现企业倒闭潮？",
+          "url": "https://www.zhihu.com/question/2108863007048591328",
+          "metric": "642 万热度",
+          "author": ""
+        },
+        {
+          "rank": 4,
+          "title": "网红甲亢哥百米跑出 10.35 秒，前 15 米加速度比博尔特还快，这一成绩含金量如何？",
+          "url": "https://www.zhihu.com/question/2108516163269439800",
+          "metric": "381 万热度",
+          "author": ""
+        },
+        {
+          "rank": 5,
+          "title": "如果一个月给你8000，但办公室永远只有你一个人，连说话的人都没有，你能坚持多久？",
+          "url": "https://www.zhihu.com/question/2107406132625069628",
+          "metric": "323 万热度",
+          "author": ""
+        },
+        {
+          "rank": 6,
+          "title": "如何看待普京在深圳下榻期间喜欢上酒店粤菜，离店前还特意打包带上飞机？",
+          "url": "https://www.zhihu.com/question/2109257162182452041",
+          "metric": "234 万热度",
+          "author": ""
+        },
+        {
+          "rank": 7,
+          "title": "市民花 750 元为空调移机，5 年后拆机才发现铜管被换成铝管，铜管和铝管有啥不同？还能维权吗？",
+          "url": "https://www.zhihu.com/question/2108865051851317704",
+          "metric": "212 万热度",
+          "author": ""
+        },
+        {
+          "rank": 8,
+          "title": "如何评价《中华小当家》里小当家因为输给了黑暗料理界被盘古处决的剧情？",
+          "url": "https://www.zhihu.com/question/1930259032301610887",
+          "metric": "202 万热度",
+          "author": ""
+        },
+        {
+          "rank": 9,
+          "title": "业主搜索发现有 WiFi 名诅咒自家 8 岁孩子，怀疑是楼下邻居所为，该如何合法维权？",
+          "url": "https://www.zhihu.com/question/2108982413300864900",
+          "metric": "184 万热度",
+          "author": ""
+        },
+        {
+          "rank": 10,
+          "title": "为什么烧烤店要用铁签子？客人要求打包怎么办？",
+          "url": "https://www.zhihu.com/question/1978722841781360155",
+          "metric": "182 万热度",
+          "author": ""
+        },
+        {
+          "rank": 11,
+          "title": "曝梁文锋身家攀升至 550 亿美元，成全球最富 AI 模型创始人，是真的吗？意味着什么？",
+          "url": "https://www.zhihu.com/question/2109197560539604552",
+          "metric": "181 万热度",
+          "author": ""
+        },
+        {
+          "rank": 12,
+          "title": "如何看待北大、清华在密云、通州新建校区而不落户雄安？",
+          "url": "https://www.zhihu.com/question/2103097723176198477",
+          "metric": "180 万热度",
+          "author": ""
+        },
+        {
+          "rank": 13,
+          "title": "S16BLG一串四LCK夺冠，和S13T1一串四LPL夺冠哪个含金量更高？",
+          "url": "https://www.zhihu.com/question/2108347439509934140",
+          "metric": "166 万热度",
+          "author": ""
+        },
+        {
+          "rank": 14,
+          "title": "为什么「不要一直穿同一双鞋」，鞋换着穿有哪些必要性？",
+          "url": "https://www.zhihu.com/question/2108218105012936951",
+          "metric": "158 万热度",
+          "author": ""
+        },
+        {
+          "rank": 15,
+          "title": "海军披露珠海航展阵容，现役主战舰艇、航母五件套、无人化装备等集中亮相，体现出我军怎样的作战体系与实力？",
+          "url": "https://www.zhihu.com/question/2108184119033254947",
+          "metric": "149 万热度",
+          "author": ""
+        }
+      ],
+      "provider": "平台公开榜单",
+      "providerUrl": "https://api.zhihu.com/topstory/hot-lists/total?limit=30",
+      "message": ""
+    },
+    {
+      "id": "toutiao",
+      "name": "今日头条",
+      "label": "热榜",
+      "url": "https://www.toutiao.com/",
+      "checkedAt": "2026-11-26T09:58:18.568311+00:00",
+      "updatedAt": "2026-11-26T09:58:26.166033+00:00",
+      "status": "ready",
+      "items": [
+        {
+          "rank": 1,
+          "title": "中方回应美拟对华加征新一轮关税",
+          "url": "https://www.toutiao.com/trending/7712376341286358564/",
+          "metric": "1229.2万 热度",
+          "author": ""
+        },
+        {
+          "rank": 2,
+          "title": "董明珠建议长城进军拖拉机",
+          "url": "https://www.toutiao.com/trending/7712036769042189843/",
+          "metric": "1112.2万 热度",
+          "author": ""
+        },
+        {
+          "rank": 3,
+          "title": "读懂《新一代通信网建设实施方案》",
+          "url": "https://www.toutiao.com/trending/7712036769042222611/",
+          "metric": "1006.3万 热度",
+          "author": ""
+        },
+        {
+          "rank": 4,
+          "title": "特朗普为何再掀关税风波",
+          "url": "https://www.toutiao.com/trending/7712399521900138020/",
+          "metric": "910.6万 热度",
+          "author": ""
+        },
+        {
+          "rank": 5,
+          "title": "特朗普儿子被查",
+          "url": "https://www.toutiao.com/trending/7712269953957265958/",
+          "metric": "823.9万 热度",
+          "author": ""
+        },
+        {
+          "rank": 6,
+          "title": "“金”字辈掀涨停潮发生了什么",
+          "url": "https://www.toutiao.com/trending/7712323298004238379/",
+          "metric": "745.5万 热度",
+          "author": ""
+        },
+        {
+          "rank": 7,
+          "title": "贪4140万“老虎”韩松被判13年",
+          "url": "https://www.toutiao.com/trending/7712402534744198682/",
+          "metric": "674.6万 热度",
+          "author": ""
+        },
+        {
+          "rank": 8,
+          "title": "普京留下伏特加做深圳酒店回礼",
+          "url": "https://www.toutiao.com/trending/7712389610906684979/",
+          "metric": "610.4万 热度",
+          "author": ""
+        },
+        {
+          "rank": 9,
+          "title": "马云现身阿里旗下芯片公司平头哥",
+          "url": "https://www.toutiao.com/trending/7712385489429266971/",
+          "metric": "552.3万 热度",
+          "author": ""
+        },
+        {
+          "rank": 10,
+          "title": "今晚年内第7次下降油价",
+          "url": "https://www.toutiao.com/trending/7712372332018306587/",
+          "metric": "499.7万 热度",
+          "author": ""
+        },
+        {
+          "rank": 11,
+          "title": "福布斯中国：8万元包上榜是假的",
+          "url": "https://www.toutiao.com/trending/7711670160285778442/",
+          "metric": "452.2万 热度",
+          "author": ""
+        },
+        {
+          "rank": 12,
+          "title": "外资在换一种方式下注中国",
+          "url": "https://www.toutiao.com/trending/7712396166427577875/",
+          "metric": "409.2万 热度",
+          "author": ""
+        },
+        {
+          "rank": 13,
+          "title": "今日17家钢厂上调钢价",
+          "url": "https://www.toutiao.com/trending/7712401659746402826/",
+          "metric": "370.2万 热度",
+          "author": ""
+        },
+        {
+          "rank": 14,
+          "title": "普京在深圳下榻酒店留下亲笔签名",
+          "url": "https://www.toutiao.com/trending/7712370754775485961/",
+          "metric": "335.0万 热度",
+          "author": ""
+        },
+        {
+          "rank": 15,
+          "title": "男子搜到诅咒自家孩子的WiFi名",
+          "url": "https://www.toutiao.com/trending/7711935704515985958/",
+          "metric": "303.1万 热度",
+          "author": ""
+        }
+      ],
+      "provider": "平台公开榜单",
+      "providerUrl": "https://www.toutiao.com/hot-event/hot-board/?origin=toutiao_pc",
+      "message": ""
+    }
+  ]
+}

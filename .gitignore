@@ -4,6 +4,8 @@ node_modules/
 test-results/
 public_build/
 release/
+__pycache__/
+*.pyc
 *.log
 *.vault.json
 .DS_Store

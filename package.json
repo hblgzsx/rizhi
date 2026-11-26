@@ -1,5 +1,5 @@
 {
   "name": "rizhi", "version": "1.0.0", "private": true, "type": "module",
   "description": "日知 · 日有所记，知有所长",
-  "scripts": { "dev": "node scripts/serve.mjs", "build": "node scripts/build.mjs", "test": "node --test tests/*.test.mjs", "news": "python scripts/fetch_news.py" }
+  "scripts": { "dev": "node scripts/serve.mjs", "build": "node scripts/build.mjs", "test": "node --test tests/*.test.mjs", "news": "python scripts/fetch_news.py", "hotboards":"python scripts/fetch_hotboards.py" }
 }

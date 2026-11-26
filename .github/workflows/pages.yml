@@ -4,7 +4,7 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: '20 23,5,11 * * *'
+    - cron: '17 * * * *'
 permissions:
   contents: read
   pages: write
@@ -24,8 +24,12 @@ jobs:
         with:
           python-version: '3.12'
       - run: npm test
+      - name: Verify ranking parsers and fallback behavior
+        run: python -m unittest discover -s tests -p 'test_*.py'
       - name: Refresh source headlines
         run: python scripts/fetch_news.py
+      - name: Refresh public platform rankings
+        run: python scripts/fetch_hotboards.py
       - name: Prepare public files only
         run: npm run build
       - uses: actions/configure-pages@v5

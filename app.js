@@ -2,6 +2,7 @@ import { DOMAINS, dayKey, addDays, uid, freshData, activeDates, stats, reviewEnt
 import { renderMarkdown } from './markdown.js';
 import { exportFilename, recordMarkdown, allMarkdown } from './exports.js?v=4-sources';
 import { SOCIAL_SOURCES, detectPlatform, extractSharedLink } from './sources.js';
+import { normalizeHotboards, hotboardState, renderHotboards } from './hotboards.js';
 
 const VAULT_KEY = 'rizhi.v1.vault';
 const $ = (s, root = document) => root.querySelector(s);
@@ -35,6 +36,7 @@ let cloudToken = '', cloudSha = null, cloudTarget = '', lastActivity = Date.now(
 let draftTimer, currentDraftKey = '', editorDirty = false, pendingSaves = 0;
 let writerState = null, pendingWriterRoute = '';
 let draftToResume = null;
+let hotSnapshot={version:1,boards:[]},hotFilter='all',hotExpanded=new Set(),hotLoading=false;
 
 const demo = freshData('探索者');
 demo.entries = [
@@ -109,9 +111,25 @@ function libraryView() {
 function platformHub() {
   return `<section class="platform-hub"><div class="section-heading"><div><span class="eyebrow">MANY WINDOWS, YOUR OWN VIEW</span><h2>从你常看的平台，认识世界</h2></div>${btn(icon('plus')+' 粘贴分享链接','share-import','outline')}</div><p class="platform-hint">视频、帖子、长文都能记录。打开平台发现话题，再把链接和自己的观察带回来。</p><div class="platform-grid">${SOCIAL_SOURCES.map(s=>`<article class="platform-card"><div class="platform-card-head"><span class="platform-mark ${s.tone}">${esc(s.mark)}</span><div><h3>${esc(s.name)}</h3><span>平台浏览 · 手动收藏</span></div></div><p>${esc(s.description)}</p><div class="platform-card-actions"><a href="${s.url}" target="_blank" rel="noopener noreferrer">去逛逛 ↗</a><button data-action="share-import" data-platform="${esc(s.name)}">${icon('plus')} 记一条</button></div></article>`).join('')}</div><div class="platform-reading-note">${icon('leaf')}<p>先记录“谁说了什么”，再判断“是否如此”。可以把不同平台对同一事件的说法放在一起比较。</p></div></section>`;
 }
+function renderHotSection() {
+  const root=$('#hotboards');if(!root)return;
+  const top=root.getBoundingClientRect().top;
+  root.outerHTML=renderHotboards(hotSnapshot,{filter:hotFilter,expanded:hotExpanded,loading:hotLoading});
+  const replacement=$('#hotboards');if(replacement&&top<80)window.scrollBy({top:replacement.getBoundingClientRect().top-top});
+}
+async function refreshHotboards(userInitiated=true) {
+  if(hotLoading)return;hotLoading=true;renderHotSection();
+  try {
+    const response=await fetch('./data/hotboards.json'+(userInitiated?'?t='+Date.now():''),{cache:'no-store',signal:AbortSignal.timeout(12000)});
+    if(!response.ok)throw new Error('榜单读取失败');
+    const result=await response.json();if(result?.version!==1||!Array.isArray(result.boards))throw new Error('榜单数据格式无效');
+    hotSnapshot=result;if(userInitiated)toast('已读取最近发布的榜单，请留意各平台的数据时间。');
+  }catch{if(userInitiated)toast('暂时无法读取新榜单，保留当前快照。');}
+  finally{hotLoading=false;renderHotSection();}
+}
 function worldView() {
   const sourceErrors = news.errors?.length || 0;
-  return `${heading('LOOK CLOSELY, THINK CLEARLY', '看见世界，也看见脉络', '从不同平台发现话题，读原文、看上下文，慢慢形成自己的判断。')}<div class="world-principle"><span>${icon('globe')}</span><div><strong>今天只挑一件事，慢一点理解。</strong><p>发生了什么 → 各方想要什么 → 规则怎样起作用 → 哪些证据能改变我的判断。</p></div>${btn('记录一个事件', 'event', 'outline')}</div>${platformHub()}<div class="section-heading"><h2>每日信息窗</h2><span>${news.generatedAt ? '更新于 ' + new Date(news.generatedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }) : '等待首次资讯更新'}</span></div><p class="quiet news-disclaimer">以下是 RSS 自动整理的来源标题，未经系统核验。社交平台内容请通过上方入口浏览或粘贴链接收藏。${sourceErrors ? ` 本次 ${sourceErrors} 个信息源暂时不可用，保留条目显示原始日期。` : ''}</p><div class="news-grid">${news.items.slice(0, 18).map(n=>`<article class="panel news-card"><div class="news-meta"><span>${esc(n.source)}</span><span>${esc(n.published?.slice(0,10) || '来源未标注日期')}</span></div><h3>${esc(n.title)}</h3><div class="news-card-bottom">${sourceLink(n.url)}<button class="text-button" data-action="news-save" data-url="${esc(n.url)}">${icon('plus')} 收入花园</button></div></article>`).join('') || empty('从一个感兴趣的问题开始', '每日资讯暂未更新。你仍可以浏览上方平台，或打开下面的一手资料窗口。')}</div><div class="section-heading"><h2>再找一个资料窗口，核对一下</h2><span>原文、论文与公开数据</span></div><div class="source-grid">${[['中国新闻网','社会与公共事务','https://www.chinanews.com.cn/'],['中国政府网','政策原文与公开信息','https://www.gov.cn/'],['arXiv · 人工智能','论文与研究进展','https://arxiv.org/list/cs.AI/recent'],['Hacker News','技术与创业讨论','https://news.ycombinator.com/'],['Our World in Data','用数据理解世界','https://ourworldindata.org/'],['国家统计局','经济与社会数据','https://www.stats.gov.cn/']].map(([t,d,u])=>`<a class="source-card" href="${u}" target="_blank" rel="noopener noreferrer"><span>${t}<small>${d}</small></span>${icon('arrow')}</a>`).join('')}</div>`;
+  return `${heading('LOOK CLOSELY, THINK CLEARLY', '看见世界，也看见脉络', '从不同平台发现话题，读原文、看上下文，慢慢形成自己的判断。')}<div class="world-principle"><span>${icon('globe')}</span><div><strong>今天只挑一件事，慢一点理解。</strong><p>发生了什么 → 各方想要什么 → 规则怎样起作用 → 哪些证据能改变我的判断。</p></div>${btn('记录一个事件', 'event', 'outline')}</div>${platformHub()}${renderHotboards(hotSnapshot,{filter:hotFilter,expanded:hotExpanded,loading:hotLoading})}<div class="section-heading"><h2>每日信息窗</h2><span>${news.generatedAt ? '更新于 ' + new Date(news.generatedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }) : '等待首次资讯更新'}</span></div><p class="quiet news-disclaimer">以下是 RSS 自动整理的来源标题，未经系统核验。社交平台内容请通过上方入口浏览或粘贴链接收藏。${sourceErrors ? ` 本次 ${sourceErrors} 个信息源暂时不可用，保留条目显示原始日期。` : ''}</p><div class="news-grid">${news.items.slice(0, 18).map(n=>`<article class="panel news-card"><div class="news-meta"><span>${esc(n.source)}</span><span>${esc(n.published?.slice(0,10) || '来源未标注日期')}</span></div><h3>${esc(n.title)}</h3><div class="news-card-bottom">${sourceLink(n.url)}<button class="text-button" data-action="news-save" data-url="${esc(n.url)}">${icon('plus')} 收入花园</button></div></article>`).join('') || empty('从一个感兴趣的问题开始', '每日资讯暂未更新。你仍可以浏览上方平台，或打开下面的一手资料窗口。')}</div><div class="section-heading"><h2>再找一个资料窗口，核对一下</h2><span>原文、论文与公开数据</span></div><div class="source-grid">${[['中国新闻网','社会与公共事务','https://www.chinanews.com.cn/'],['中国政府网','政策原文与公开信息','https://www.gov.cn/'],['arXiv · 人工智能','论文与研究进展','https://arxiv.org/list/cs.AI/recent'],['Hacker News','技术与创业讨论','https://news.ycombinator.com/'],['Our World in Data','用数据理解世界','https://ourworldindata.org/'],['国家统计局','经济与社会数据','https://www.stats.gov.cn/']].map(([t,d,u])=>`<a class="source-card" href="${u}" target="_blank" rel="noopener noreferrer"><span>${t}<small>${d}</small></span>${icon('arrow')}</a>`).join('')}</div>`;
 }
 function shareImportModal(platform='') {
   if(!requireAccount())return;
@@ -467,6 +485,10 @@ document.addEventListener('click',async(event)=>{
     else if(action==='auth')authModal();
     else if(action==='lock')await lock();
     else if(action==='capture')captureModal();
+    else if(action==='hot-filter'){hotFilter=button.dataset.platform;renderHotSection();}
+    else if(action==='hot-expand'){const platform=button.dataset.platform;if(hotExpanded.has(platform))hotExpanded.delete(platform);else hotExpanded.add(platform);renderHotSection();}
+    else if(action==='hot-refresh')await refreshHotboards();
+    else if(action==='hot-save'){const board=normalizeHotboards(hotSnapshot).find(b=>b.id===button.dataset.platform);const item=board?.items.find(i=>i.rank===Number(button.dataset.rank));if(item&&hotboardState(board).code!=='unavailable')captureModal({title:item.title,source:item.url,sourcePlatform:board.name,sourceAuthor:item.author,type:'event',domain:DOMAINS[1],content:`来自${board.name} · ${board.label}第 ${item.rank} 名\n榜单快照时间：${new Date(board.updatedAt).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false})}\n\n我想了解：\n- 发生了什么？\n- 各方的说法与证据是什么？\n- 还有什么信息需要核实？`});}
     else if(action==='share-import')shareImportModal(button.dataset.platform||'');
     else if(action==='event')captureModal({type:'event',domain:DOMAINS[1]});
     else if(action==='journal')journalModal(id);
@@ -595,6 +617,7 @@ window.addEventListener('hashchange',()=>{
   if(writerState)removeWriter();
   if(route.startsWith('write/'))routeWriter(route);else{page=route;render();window.scrollTo({top:0});}
 });
+refreshHotboards(false);
 const initialRoute=location.hash.slice(1)||'today';
 if(initialRoute.startsWith('write/')){pendingWriterRoute=initialRoute;page='today';render();authModal();}else{page=initialRoute;render();}
 fetch('./data/news.json').then(r=>r.ok?r.json():Promise.reject()).then(result=>{news=result;if(page==='world')render();}).catch(()=>{});
