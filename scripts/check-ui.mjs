@@ -9,10 +9,10 @@ const context=await browser.newContext({viewport:{width:1440,height:1050},accept
 const page=await context.newPage(),errors=[];
 page.on('pageerror',error=>errors.push(error.message));
 page.on('dialog',dialog=>dialog.accept());
-const url=process.env.TEST_URL || 'http://127.0.0.1:4173';
+const url=(process.env.TEST_URL || 'http://127.0.0.1:4173').replace(/\/$/,'');
 let checks=0;
 const checked=label=>{checks++;console.log('PASS '+label);};
-const click=selector=>page.locator(selector).first().click();
+const click=async selector=>{const button=page.locator(selector).first();const leavesWriter=await button.evaluate(el=>el.dataset.action==='close'&&!!el.closest('.writer-page'));await button.click();if(leavesWriter)await page.locator('.writer-page').waitFor({state:'detached'});};
 const modal=()=>page.locator('.modal');
 async function waitClosed(){await page.waitForFunction(()=>!document.querySelector('.modal, .writer-page'));}
 try {
@@ -30,8 +30,7 @@ try {
   const currentDownload=page.waitForEvent('download');await click('[data-action=export-current]');const current=await currentDownload;
   assert.match(current.suggestedFilename(),/^\d{4}-\d{2}-\d{2}_生活手记_/);assert.ok(current.suggestedFilename().endsWith('.md'));
   await current.saveAs('test-results/current.md');assert.ok((await readFile('test-results/current.md','utf8')).includes(experience));checked('未保存的当前篇章可以直接导出，保留 Markdown');
-  await page.waitForTimeout(1000);await click('[data-action=close]');await click('[data-action=journal]');
-  assert.ok(await page.getByText('这里有一份未完成的加密草稿。').count());await click('[data-action=draft-restore]');assert.equal(await page.locator('[name=experience]').inputValue(),experience);checked('关闭编辑后恢复加密草稿');
+  await page.waitForTimeout(1000);await click('[data-action=close]');await click('[data-action=journal]');assert.equal(await page.locator('[name=experience]').inputValue(),'');assert.equal(await page.locator('[data-action=draft-restore]').count(),0);await click('[data-action=close]');await page.goto(url+'/#drafts');await page.locator('.draft-card').filter({hasText:'一个普通的好日子'}).locator('[data-action=draft-open]').first().click();assert.equal(await page.locator('[name=experience]').inputValue(),experience);checked('新建始终独立空白，从草稿箱选择后继续旧草稿');
   await page.screenshot({path:'test-results/markdown-editor.png',fullPage:true});
   await click('#journal-form [type=submit]');await waitClosed();
   await page.goto(url+'/#journal');assert.equal(await page.locator('.journal-card .md-content h1').innerText(),'一个普通的好日子');
@@ -52,20 +51,20 @@ try {
   const markdownDownload=page.waitForEvent('download');await click('[data-action=markdown]');const md=await markdownDownload;await md.saveAs('test-results/all.md');const all=await readFile('test-results/all.md','utf8');for(const text of ['我的判断','自己的解释','本周的解释','一个小实验'])assert.ok(all.includes(text));checked('全量 Markdown 包含日记、卡片、复盘和实践');
   await page.reload();await modal().waitFor();await page.locator('[name=password]').fill('wrong-password');await click('#auth-form [type=submit]');await page.waitForFunction(()=>document.querySelector('.form-error')?.textContent.includes('密码不正确'));assert.ok((await page.locator('.form-error').innerText()).includes('密码不正确'));await page.locator('[name=password]').fill('test-long-password-123');await click('#auth-form [type=submit]');await waitClosed();checked('刷新自动锁定，错误密码拒绝，正确密码恢复');
   await page.goto(url+'/#growth');assert.equal(await page.locator('.heat-cell').count(),182);await page.screenshot({path:'test-results/growth.png',fullPage:true});checked('成长足迹热力图');
-  for(const route of ['today','journal','library','world','focus','review','growth','settings']) {
+  for(const route of ['today','journal','library','drafts','world','focus','review','growth','settings']) {
     await page.setViewportSize({width:390,height:844});await page.goto(url+'/#'+route);
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
     assert.equal(overflow,false,'手机横向溢出：'+route);
     if(route==='today'||route==='journal')await page.screenshot({path:`test-results/mobile-${route}.png`,fullPage:true});
-  }checked('八个页面在手机宽度均无整体横向溢出');
+  }checked('九个页面在手机宽度均无整体横向溢出');
   await page.goto(url+'/#today');await click('[data-action=journal]');await page.screenshot({path:'test-results/mobile-editor.png',fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await click('[data-action=close]');checked('手机 Markdown 编辑器布局');
   await page.setViewportSize({width:1440,height:1000});await page.goto(url+'/#library');await click('[data-action=capture]');
   await page.locator('[name=title]').fill('独立写作与草稿恢复');await page.locator('[name=content]').fill('# 一页更宽的思考\n\n独立页面，安静写作。');await page.waitForTimeout(1200);
   await page.reload();await page.locator('#auth-form').waitFor();await page.locator('[name=password]').fill('test-long-password-123');await click('#auth-form [type=submit]');await page.locator('.writer-page').waitFor();
-  assert.ok(page.url().includes('#write/entry/new'));await click('[data-action=draft-restore]');assert.equal(await page.locator('[name=title]').inputValue(),'独立写作与草稿恢复');assert.ok((await page.locator('[name=content]').inputValue()).includes('安静写作'));checked('刷新独立写作地址，登录后恢复原路线与加密草稿');
+  assert.ok(page.url().includes('#write/entry/new/draft/'));assert.equal(await page.locator('[name=title]').inputValue(),'独立写作与草稿恢复');assert.ok((await page.locator('[name=content]').inputValue()).includes('安静写作'));checked('刷新独立写作地址，登录后恢复原路线与加密草稿');
   await click('[data-action=writer-preview]');await page.locator('.writer-topbar [data-action=writer-save]').click();await waitClosed();assert.equal(await page.locator('.writer-page').count(),0);checked('全文预览时从顶部保存，正确返回来源页面');
   await page.goto(url+'/#library');await click('[data-action=capture]');await page.locator('[name=title]').fill('浏览器前进后退的草稿');await page.locator('[name=content]').fill('浏览器返回也能保管这段文字。');await page.waitForTimeout(1100);
-  await page.goBack();await page.locator('.writer-page').waitFor({state:'detached'});assert.ok(page.url().endsWith('#library'));await page.goForward();await page.locator('.writer-page').waitFor();await click('[data-action=draft-restore]');assert.equal(await page.locator('[name=title]').inputValue(),'浏览器前进后退的草稿');await click('[data-action=close]');checked('浏览器后退与前进支持写作路由，未保存内容可恢复');
+  await page.goBack();await page.locator('.writer-page').waitFor({state:'detached'});assert.ok(page.url().endsWith('#library'));await page.goForward();await page.locator('.writer-page').waitFor();assert.equal(await page.locator('[name=title]').inputValue(),'浏览器前进后退的草稿');await click('[data-action=close]');checked('浏览器后退与前进支持写作路由，未保存内容可恢复');
   await page.locator('#library-search').fill('');await page.locator('.entry-card').filter({hasText:'独立写作与草稿恢复'}).click();await click('[data-action=edit-entry]');await page.screenshot({path:'test-results/writer-entry.png',fullPage:true});await click('[data-action=entry-delete]');await page.locator('.modal [data-action=close]').first().click();assert.ok(await page.locator('.writer-page').isVisible());await page.locator('[name=content]').fill('取消删除后继续写作。');await page.waitForTimeout(1100);await click('[data-action=entry-delete]');await page.locator('.modal [data-action=delete-confirm]').click();await waitClosed();assert.equal(await page.locator('.entry-card').filter({hasText:'独立写作与草稿恢复'}).count(),0);checked('写作页面删除确认可取消；确认后返回并清除对应草稿');
   const other=await browser.newContext({viewport:{width:1280,height:900}}),restore=await other.newPage();restore.on('dialog',d=>d.accept());await restore.goto(url);await restore.locator('[data-action=auth]').first().click();await restore.locator('[data-action=import]').click();await restore.locator('[name=file]').setInputFiles('test-results/backup.vault.json');await restore.locator('[name=password]').fill('test-long-password-123');await restore.locator('#import-form [type=submit]').click();await restore.locator('.modal').waitFor({state:'detached'});await restore.goto(url+'/#journal');assert.ok((await restore.locator('.journal-card').innerText()).includes('理解需要证据'));await other.close();checked('全新浏览器设备从加密备份恢复完整记录');
   assert.deepEqual(errors,[]);checked('全程无未捕获 JavaScript 错误');

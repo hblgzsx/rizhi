@@ -6,7 +6,19 @@ export function dayKey(date = new Date()) {
 export function addDays(day, count) { return new Date(Date.parse(`${day}T00:00:00Z`) + count * 86400000).toISOString().slice(0, 10); }
 export function uid() { return crypto.randomUUID(); }
 export function freshData(name = '同学') {
-  return { version: 1, profile: { name, focus: DOMAINS[0], weeklyGoal: 4, dailyMinutes: 15 }, entries: [], journals: [], reviews: [], projects: [], createdAt: new Date().toISOString() };
+  return { version: 1, profile: { name, focus: DOMAINS[0], weeklyGoal: 4, dailyMinutes: 15 }, entries: [], journals: [], reviews: [], projects: [], drafts: {}, createdAt: new Date().toISOString() };
+}
+export function migrateDrafts(data) {
+  const next = {};
+  const kinds = {'journal-form':'journal','entry-form':'entry','weekly-form':'weekly','project-form':'project'};
+  for (const [legacyKey, draft] of Object.entries(data.drafts || {})) {
+    const [form, target, quick] = legacyKey.split(':');
+    const id = draft.id && /^[A-Za-z0-9-]{1,80}$/.test(draft.id) ? draft.id : uid();
+    const kind = draft.kind || kinds[form] || 'entry';
+    const recordId = draft.recordId || (target && target !== 'new' && !/^\d{4}-\d{2}-\d{2}$/.test(target) ? target : '');
+    next[id] = {...draft,id,kind,recordId,quick:draft.quick ?? quick === 'true',createdAt:draft.createdAt || draft.updatedAt || data.createdAt,updatedAt:draft.updatedAt || data.createdAt};
+  }
+  data.drafts = next; return data;
 }
 export function validateData(data) {
   if (!data || data.version !== 1 || !data.profile || typeof data.profile.name !== 'string' || typeof data.profile.focus !== 'string' || !Number.isInteger(data.profile.weeklyGoal) || data.profile.weeklyGoal < 1 || data.profile.weeklyGoal > 7 || !Array.isArray(data.entries) || !Array.isArray(data.journals) || !Array.isArray(data.reviews) || !Array.isArray(data.projects)) throw new Error('备份格式无效，未修改现有记录。');
@@ -28,7 +40,10 @@ export function validateData(data) {
   for (const project of data.projects) if (!project || typeof project.id !== 'string' || typeof project.title !== 'string' || typeof project.done !== 'boolean') throw new Error('专题格式无效。');
   if (data.drafts !== undefined) {
     if (!data.drafts || typeof data.drafts !== 'object' || Array.isArray(data.drafts)) throw new Error('草稿格式无效。');
-    for (const draft of Object.values(data.drafts)) if (!draft || !draft.fields || typeof draft.fields !== 'object' || Object.values(draft.fields).some(value=>typeof value!=='string')) throw new Error('草稿内容格式无效。');
+    for (const [id,draft] of Object.entries(data.drafts)) {
+      if (!draft || !draft.fields || typeof draft.fields !== 'object' || Array.isArray(draft.fields) || Object.values(draft.fields).some(value=>typeof value!=='string')) throw new Error('草稿内容格式无效。');
+      if (draft.id !== undefined && (!validId(draft.id) || draft.id !== id || !['journal','entry','weekly','project'].includes(draft.kind) || typeof draft.recordId !== 'string' || (draft.recordId && !validId(draft.recordId)) || typeof draft.quick !== 'boolean')) throw new Error('草稿信息格式无效。');
+    }
   }
   return data;
 }

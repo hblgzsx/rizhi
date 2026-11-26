@@ -1,4 +1,4 @@
-import { DOMAINS, dayKey, addDays, uid, freshData, activeDates, stats, reviewEntry, createKey, seal, unseal } from './core.js';
+import { DOMAINS, dayKey, addDays, uid, freshData, activeDates, stats, reviewEntry, createKey, seal, unseal, migrateDrafts } from './core.js?v=3-drafts';
 import { renderMarkdown } from './markdown.js';
 import { exportFilename, recordMarkdown, allMarkdown } from './exports.js';
 
@@ -28,11 +28,12 @@ const icons = {
   download: '<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
 };
 const icon = (name, cls = '') => `<svg class="icon ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.book}</svg>`;
-const navs = [['today', 'sun', '今日'], ['journal', 'pen', '生活手记'], ['library', 'layers', '知识花园'], ['world', 'globe', '看见世界'], ['focus', 'book', '我的主修'], ['review', 'refresh', '回望与表达'], ['growth', 'chart', '成长足迹']];
+const navs = [['today', 'sun', '今日'], ['journal', 'pen', '生活手记'], ['library', 'layers', '知识花园'], ['drafts', 'pen', '草稿箱'], ['world', 'globe', '看见世界'], ['focus', 'book', '我的主修'], ['review', 'refresh', '回望与表达'], ['growth', 'chart', '成长足迹']];
 let data = freshData(), key = null, salt = null, storedRaw = null, preview = true, page = 'today', filter = '全部', query = '', domainFilter = '全部', news = { items: [] }, saveQueue = Promise.resolve(), saveFailure = null, conflict = false;
 let cloudToken = '', cloudSha = null, cloudTarget = '', lastActivity = Date.now(), lastFocus;
 let draftTimer, currentDraftKey = '', editorDirty = false, pendingSaves = 0;
 let writerState = null, pendingWriterRoute = '';
+let draftToResume = null;
 
 const demo = freshData('探索者');
 demo.entries = [
@@ -70,12 +71,12 @@ function render() {
   document.title = `${navs.find(n => n[0] === page)?.[2] || '设置'} · 日知`;
   const s = stats(data), date = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', month: 'long', day: 'numeric', weekday: 'long' });
   $('#app').innerHTML = `<aside class="sidebar"><a class="brand" href="#today" aria-label="日知首页"><span class="brand-mark">${icon('book')}</span><span>日知<small>日有所记，知有所长</small></span></a>
-    <div class="space-label">我的成长空间 <span class="small-leaf">✧</span></div><nav aria-label="主导航">${navs.map(([id, i, label]) => `<a href="#${id}" class="nav-item ${page === id ? 'active' : ''}" ${page === id ? 'aria-current="page"' : ''}>${icon(i)}<span>${label}</span>${id === 'review' && s.due ? `<b class="nav-count">${s.due}</b>` : ''}</a>`).join('')}</nav>
+    <div class="space-label">我的成长空间 <span class="small-leaf">✧</span></div><nav aria-label="主导航">${navs.map(([id, i, label]) => `<a href="#${id}" class="nav-item ${page === id ? 'active' : ''}" ${page === id ? 'aria-current="page"' : ''}>${icon(i)}<span>${label}</span>${id === 'drafts' && !preview && Object.keys(data.drafts||{}).length ? `<b class="nav-count">${Object.keys(data.drafts).length}</b>` : ''}${id === 'review' && s.due ? `<b class="nav-count">${s.due}</b>` : ''}</a>`).join('')}</nav>
     <div class="sidebar-note"><div class="seedling">${icon('leaf')}</div><p>让每天的一点点，<br>成为日后的不一样。</p><span>慢慢来，也是一种力量。</span></div>
     <div class="sidebar-bottom"><a class="nav-item ${page === 'settings' ? 'active' : ''}" href="#settings">${icon('settings')}<span>空间设置</span></a><button class="account" data-action="${preview ? 'auth' : 'lock'}"><span class="avatar">${esc(data.profile.name.slice(0, 1))}</span><span>${esc(preview ? '先逛逛这里' : data.profile.name)}<small>${preview ? '创建属于你的空间' : '点击锁定私人空间'}</small></span>${icon(preview ? 'arrow' : 'lock')}</button></div></aside>
     <div class="workspace"><header class="topbar"><span class="breadcrumb">我的空间 <span>/</span> ${navs.find(n => n[0] === page)?.[2] || '空间设置'}</span><div class="top-actions"><span class="date-label">${date}</span><button class="icon-button" data-action="search" aria-label="搜索知识">${icon('search')}</button>${btn(icon('plus') + ' 随手记', 'capture', 'primary compact')}</div></header>
     ${preview ? `<div class="preview-bar"><span>${icon('spark')} 你正在预览示例空间，下面的记录仅作演示。</span><button data-action="auth">${localStorage.getItem(VAULT_KEY) ? '登录我的空间' : '开启我的第一天'} ${icon('arrow')}</button></div>` : `<div class="private-status">${icon('lock')}<span id="save-status">${saveFailure ? '保存失败，请导出备份' : '已加密保存于此设备'}</span><span>·</span><a href="#settings">备份与跨设备同步</a></div>`}
-    <main id="main" tabindex="-1">${({ today: todayView, journal: journalView, library: libraryView, world: worldView, focus: focusView, review: reviewView, growth: growthView, settings: settingsView }[page] || todayView)()}</main>
+    <main id="main" tabindex="-1">${({ today: todayView, journal: journalView, library: libraryView, world: worldView, focus: focusView, review: reviewView, growth: growthView, settings: settingsView, drafts: draftsView }[page] || todayView)()}</main>
     <footer>日知 <span>·</span> 把日子过成自己的学问 <span class="footer-right">一日一知，一生有光。</span></footer></div>`;
 }
 
@@ -147,14 +148,16 @@ function closeModal() {
   lastFocus?.focus();
 }
 
-function draftKeyFor(form) {return `${form.id}:${form.dataset.id || (form.id==='journal-form'?dayKey():'new')}:${form.dataset.quick||''}`;}
+function draftKeyFor(form) {return form.dataset.draftId ||= uid();}
 function openWriter(title,subtitle,content) {
   flushDraft(); currentDraftKey='';editorDirty=false;
   const from=writerState?.from || (page.startsWith('write/') ? 'library' : page);
   const holder=document.createElement('div');holder.innerHTML=content;
   const form=$('form',holder),kind={'journal-form':'journal','entry-form':'entry','weekly-form':'weekly'}[form.id];
-  const route=`write/${kind}/${form.dataset.id||'new'}${form.dataset.quick==='true'?'/quick':''}`;
-  writerState={from,route,kind};
+  prepareDraftForm(form);
+  const draftId=draftKeyFor(form);
+  const route=`write/${kind}/${form.dataset.id||'new'}/draft/${draftId}${form.dataset.quick==='true'?'/quick':''}`;
+  writerState={from,route,kind,draftId};
   $('#modal-root').innerHTML='';document.body.classList.remove('modal-open');document.body.classList.add('writer-open');
   const label={journal:'生活手记',entry:'知识笔记',weekly:'每周复盘'}[kind];
   $('#writer-root').innerHTML=`<section class="writer-page"><header class="writer-topbar"><div class="writer-top-left"><button class="writer-back" data-action="close" aria-label="保存草稿并返回">${icon('arrow')}<span>返回</span></button><a class="writer-brand" href="#today">${icon('book')}日知<span>/</span><small>写作间</small></a></div><div class="writer-top-actions"><span id="writer-status">${icon('lock')}草稿自动加密保存</span><button class="btn outline" data-action="writer-preview">${icon('book')}<span>全文预览</span></button><button class="btn outline writer-download" data-action="export-current">${icon('download')}<span>导出 .md</span></button><button class="btn primary" data-action="writer-save" type="submit" form="${form.id}">${icon('check')}<span>保存笔记</span></button></div></header><main id="writer-main" class="writer-main" tabindex="-1"><div class="writer-intro"><div><span class="eyebrow">A QUIET PLACE TO THINK</span><h1>${title}<span>。</span></h1><p>${subtitle}</p></div><div class="writer-type">${icon(kind==='journal'?'pen':kind==='entry'?'leaf':'refresh')}<span>${label}</span></div></div><div id="writer-form-slot"></div><section class="writer-full-preview" hidden aria-label="全文预览"><div class="writer-preview-heading"><span class="eyebrow">READ YOUR OWN WORDS</span><span>你的文字，慢慢有了形状</span></div><article class="md-content"></article></section><div class="writer-bottom-note"><span>日有所记，知有所长。</span><span>Ctrl / ⌘ + S 保存 · Markdown 写作</span></div></main></section>`;
@@ -193,16 +196,20 @@ function openWriter(title,subtitle,content) {
 function removeWriter() {
   flushDraft();currentDraftKey='';editorDirty=false;writerState=null;$('#writer-root').innerHTML='';document.body.classList.remove('writer-open','writer-previewing');$('.skip-link').href='#main';
 }
-function exitWriter() {
-  const destination=writerState?.from||'library';removeWriter();history.replaceState(null,'',`#${destination}`);page=destination;render();window.scrollTo({top:0});
+async function exitWriter() {
+  const destination=writerState?.from||'library';flushDraft();
+  try {await saveQueue;}catch{toast('草稿尚未保存成功，请先导出当前内容后再离开。');return;}
+  removeWriter();history.replaceState(null,'',`#${destination}`);page=destination;render();window.scrollTo({top:0});
 }
 function routeWriter(route) {
-  const [,kind,id,mode]=route.split('/');
+  const [,kind,id,mode,draftId,quick]=route.split('/');
   if(!['journal','entry','weekly'].includes(kind)||!id||!/^(new|[A-Za-z0-9-]{1,80})$/.test(id)){history.replaceState(null,'','#today');page='today';render();return;}
   if(preview){pendingWriterRoute=route;page='today';render();authModal();return;}
+  if(mode==='draft'&&draftId&&data.drafts?.[draftId]){openDraft(draftId,false);return;}
+  if(mode==='draft'&&draftId&&/^[A-Za-z0-9-]{1,80}$/.test(draftId))draftToResume={id:draftId,kind,recordId:id==='new'?'':id,quick:quick==='quick',fields:{}};
   const recordId=id==='new'?undefined:id;
-  if(recordId&&!({journal:data.journals,entry:data.entries,weekly:data.reviews}[kind]).some(r=>r.id===recordId)){toast('这篇记录不存在或已被删除。');history.replaceState(null,'','#library');page='library';render();return;}
-  if(kind==='journal')journalModal(recordId,mode==='quick');else if(kind==='entry')captureModal({id:recordId});else weeklyModal(recordId);
+  if(recordId&&!({journal:data.journals,entry:data.entries,weekly:data.reviews}[kind]).some(r=>r.id===recordId)){draftToResume=null;toast('这篇记录不存在或已被删除。');history.replaceState(null,'','#library');page='library';render();return;}
+  if(kind==='journal')journalModal(recordId,mode==='quick'||quick==='quick');else if(kind==='entry')captureModal({id:recordId});else weeklyModal(recordId);
 }
 function previewWriter() {
   const form=$('#writer-root form');if(!form)return;
@@ -223,7 +230,7 @@ function authModal(mode) {
 function inputField(label, name, placeholder = '', value = '', required = false, textarea = false) { return `<label>${label}${textarea?`<textarea name="${name}" rows="3" maxlength="20000" ${required?'required':''} placeholder="${esc(placeholder)}">${esc(value)}</textarea>`:`<input name="${name}" maxlength="300" ${required?'required':''} placeholder="${esc(placeholder)}" value="${esc(value)}">`}</label>`; }
 function journalModal(id, quick = false) {
   if (!requireAccount()) return;
-  const j = data.journals.find(x=>x.id===id) || (!id && data.journals.find(x=>x.date===dayKey()));
+  const j = data.journals.find(x=>x.id===id) || (!id && !draftToResume && data.journals.find(x=>x.date===dayKey()));
   modal(quick?'一句话，也值得留下':j?'继续今天的手记':'给今天留一点文字', '不用写成文章，先把真实的自己留在这里。', `<form id="journal-form" data-id="${j?.id || ''}" data-quick="${quick}"><div class="form-row"><label>记录日期<input type="date" name="date" required max="${dayKey()}" value="${j?.date || dayKey()}"></label><label>此刻的心情<select name="mood">${['平静','开心','充实','疲惫','困惑','难过','期待'].map(m=>`<option ${j?.mood===m?'selected':''}>${m}</option>`).join('')}</select></label></div>${inputField('今天经历了什么','experience',quick?'用一句话说说今天。':'一个场景、一段对话，或一件微小的事。',j?.experience,true,true)}${quick?'':inputField('我的感受与想法','thought','我为什么会有这样的感受？',j?.thought,false,true)+inputField('今天带走的一句话','takeaway','今天学到、想明白，或想提醒自己的一件事。',j?.takeaway,false,true)}<p class="form-error" role="alert"></p><div class="form-footer">${j?btn('删除手记','journal-delete','text danger',`data-id="${j.id}"`):'<span class="quiet">真实就很好。</span>'}<button class="btn primary" type="submit">保存今天 ${icon('check')}</button></div></form>`,true);
 }
 function captureModal(options = {}) {
@@ -282,13 +289,25 @@ function editableForm() {
 function formDraft(form) {
   return Object.fromEntries([...new FormData(form)].filter(([name,value])=>typeof value==='string'&&name!=='password'));
 }
+function prepareDraftForm(form) {
+  if(form.dataset.draftReady)return;
+  form.dataset.draftReady='true';form.dataset.baseline=JSON.stringify(formDraft(form));
+  form.dataset.draftId=draftToResume?.id || uid();
+  if(draftToResume){
+    for(const [name,value] of Object.entries(draftToResume.fields||{})){
+      const field=form.elements.namedItem(name);if(!field||typeof value!=='string')continue;
+      if(field.tagName==='SELECT'&&![...field.options].some(option=>option.value===value))field.add(new Option(value,value));
+      field.value=value;
+    }
+    draftToResume=null;
+  }
+}
 function enhanceEditor() {
   const form=editableForm();if(!form)return;
-  currentDraftKey=draftKeyFor(form);
+  prepareDraftForm(form);currentDraftKey=draftKeyFor(form);
   if(form.dataset.enhanced)return;form.dataset.enhanced='true';
-  const draft=data.drafts?.[currentDraftKey];
   const note=document.createElement('div');note.className='draft-status';
-  note.innerHTML=draft?`<span>这里有一份未完成的加密草稿。</span>${btn('恢复草稿','draft-restore','text')}${btn('删除旧草稿','draft-discard','text')}`:'<span>草稿将自动加密保存在此浏览器，正式记录请点击下方保存。</span>';
+  note.innerHTML='<span>未完成内容会自动存入独立的草稿箱。</span><a href="#drafts">查看草稿箱 →</a>';
   form.prepend(note);
   form.querySelectorAll('textarea').forEach((textarea,index)=>{
     const editor=document.createElement('div');editor.className='md-editor';editor.dataset.mode='edit';
@@ -328,21 +347,64 @@ function formatEditor(button) {
 }
 function captureDraft() {
   const form=editableForm();if(preview||!form||!currentDraftKey||!editorDirty)return false;
-  data.drafts ||= {};data.drafts[currentDraftKey]={fields:formDraft(form),updatedAt:new Date().toISOString()};editorDirty=false;return true;
+  const fields=formDraft(form),kind={'journal-form':'journal','entry-form':'entry','weekly-form':'weekly','project-form':'project'}[form.id];
+  const written={journal:['experience','thought','takeaway'],entry:['title','content','fact','opinion','boundary','rule','question'],weekly:['title','insight','before','evidence','boundary','next'],project:['title','description']}[kind];
+  editorDirty=false;data.drafts ||= {};
+  const baseline=JSON.parse(form.dataset.baseline||'{}');
+  const unchanged=[...new Set([...Object.keys(fields),...Object.keys(baseline)])].every(name=>(fields[name]||'')===(baseline[name]||''));
+  if(!written?.some(name=>fields[name]?.trim())||unchanged){
+    const existed=!!data.drafts[currentDraftKey];delete data.drafts[currentDraftKey];return existed;
+  }
+  const old=data.drafts[currentDraftKey],now=new Date().toISOString();
+  data.drafts[currentDraftKey]={id:currentDraftKey,kind,recordId:form.dataset.id||'',quick:form.dataset.quick==='true',fields,createdAt:old?.createdAt||now,updatedAt:now};return true;
 }
 function flushDraft() {
   clearTimeout(draftTimer);
   if(captureDraft())persist().then(()=>{const note=$('.draft-status');if(note)note.textContent='草稿已加密保存 · 正式记录请点击保存笔记';const status=$('#writer-status');if(status)status.innerHTML=icon('check')+'草稿已加密保存';}).catch(()=>{const status=$('#writer-status');if(status)status.textContent='保存失败，请导出当前内容';});
 }
-function restoreDraft() {
-  const form=editableForm(),draft=data.drafts?.[currentDraftKey];if(!form||!draft)return;
-  for(const [name,value] of Object.entries(draft.fields||{})){const field=form.elements.namedItem(name);if(field&&typeof value==='string')field.value=value;}
-  form.querySelectorAll('textarea').forEach(updateEditor);$('.draft-status',form).textContent='已恢复上次草稿，继续写就好。';toast('草稿已恢复。');
+function draftTitle(draft) {return draft.fields.title?.trim() || (draft.fields.experience||draft.fields.content||draft.fields.insight||draft.fields.description||'').split('\n').find(line=>line.trim())?.replace(/^#+\s*/,'').slice(0,90) || '未命名草稿';}
+function draftsView() {
+  const drafts=preview?[]:Object.values(data.drafts||{}).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
+  return `${heading('ROOM FOR UNFINISHED THOUGHTS','让未完成的想法，有处安放','上次没写完的内容，都在这里。选一篇接着写，或另起一页。',btn(icon('plus')+' 新建笔记','capture'))}<div class="drafts-summary"><span>${icon('pen')} ${drafts.length} 份未完成草稿</span><p>草稿自动加密保存；保存为正式记录后，这一份会从草稿箱移出。</p></div><div class="drafts-grid">${drafts.map(d=>{
+    const label={journal:'生活手记',entry:'知识笔记',weekly:'每周复盘',project:'实践课题'}[d.kind]||'笔记';
+    const raw=d.fields.content||d.fields.experience||d.fields.insight||d.fields.description||d.fields.before||'';
+    const date=d.updatedAt&&!Number.isNaN(Date.parse(d.updatedAt))?new Date(d.updatedAt).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}):'旧版草稿';
+    return `<article class="panel draft-card" data-draft-id="${esc(d.id)}"><div class="draft-card-meta"><span>${esc(label)}${d.quick?' · 轻量':''}</span><span>${d.recordId?'修改中的记录':'尚未正式保存'}</span></div><button class="draft-open-area" data-action="draft-open" data-id="${esc(d.id)}"><h2>${esc(draftTitle(d))}</h2><p>${esc(raw.slice(0,160)||'还留着一个等待展开的标题。')}</p></button><div class="draft-card-date">${icon('clock')} 更新于 ${esc(date)}${d.fields.date?`<span>记录日期 ${esc(d.fields.date)}</span>`:''}</div><div class="draft-card-footer">${btn('继续写 '+icon('arrow'),'draft-open','primary',`data-id="${esc(d.id)}"`)}<div>${d.kind!=='project'?btn('导出 .md','draft-export','text',`data-id="${esc(d.id)}"`):''}${btn('删除','draft-delete','text danger',`data-id="${esc(d.id)}"`)}</div></div></article>`;
+  }).join('')||empty(preview?'登录后查看你的草稿':'草稿箱空空的，也很好','写到一半随时离开，未完成的内容会自动收在这里。',btn(preview?'登录我的空间':'开始写一篇',preview?'auth':'capture'))}</div>`;
 }
-function discardDraft() {
-  if(data.drafts&&currentDraftKey)delete data.drafts[currentDraftKey];persist().catch(()=>{});const note=$('.draft-status');if(note)note.textContent='旧草稿已删除。当前编辑内容不受影响。';
+function openDraft(id, fromInbox=true) {
+  if(!requireAccount())return;
+  const draft=data.drafts?.[id];if(!draft){toast('这份草稿已保存或删除。');return;}
+  draftToResume=structuredClone(draft);
+  const collection={journal:data.journals,entry:data.entries,weekly:data.reviews,project:data.projects}[draft.kind];
+  const recordId=collection?.some(r=>r.id===draft.recordId)?draft.recordId:undefined;
+  if(fromInbox)page='drafts';
+  if(draft.kind==='journal')journalModal(recordId,draft.quick);
+  else if(draft.kind==='entry')captureModal({id:recordId,expand:true});
+  else if(draft.kind==='weekly')weeklyModal(recordId);
+  else if(draft.kind==='project')projectModal();
+  if(!recordId&&draft.recordId)toast('原记录已不存在，草稿将作为新记录保存。');
 }
-function clearSavedDraft() {clearTimeout(draftTimer);if(data.drafts&&currentDraftKey)delete data.drafts[currentDraftKey];currentDraftKey='';editorDirty=false;}
+function deleteDraftModal(id) {
+  if(!requireAccount()||!data.drafts?.[id])return;
+  modal('删除这份草稿？','只删除所选草稿，不影响已经保存的正式记录或其他草稿。',`<div class="button-row">${btn('保留草稿','close','outline')}${btn('确认删除','draft-delete-confirm','danger-solid',`data-id="${esc(id)}"`)}</div>`);
+}
+async function deleteDraft(id) {
+  if(!requireAccount())return;const old=data.drafts?.[id];if(!old)return;
+  delete data.drafts[id];
+  try {await persist();closeModal();render();toast('这份草稿已删除。');}catch{data.drafts[id]=old;}
+}
+function exportDraft(id) {
+  if(!requireAccount(true))return;const draft=data.drafts?.[id];if(!draft)return;
+  const kind={journal:'journals',entry:'entries',weekly:'reviews'}[draft.kind];if(!kind)return;
+  const record={...draft.fields,id:'draft',date:draft.fields.date||dayKey(new Date(draft.createdAt||draft.updatedAt)),title:draftTitle(draft)};
+  if(kind==='entries')record.tags=String(record.tags||'').split(/[,，]/).map(t=>t.trim()).filter(Boolean);
+  exportRecord(kind,null,record);
+}
+function projectModal() {
+  if(!requireAccount())return;
+  modal('把理解，做成一件小事','选一个范围足够小、做完能看到结果的课题。',`<form id="project-form">${inputField('课题名称','title','例如：用一个实验解释过拟合','',true)}${inputField('怎样算完成','description','写清要交付的小成果。','',false,true)}<p class="form-error" role="alert"></p><button class="btn primary" type="submit">加入我的实践</button></form>`);
+}
 function exportCurrentForm() {
   const form=editableForm();if(!form)return;
   const values=formDraft(form),kind={'journal-form':'journals','entry-form':'entries','weekly-form':'reviews'}[form.id];if(!kind)return;
@@ -403,7 +465,7 @@ document.addEventListener('click',async(event)=>{
     else if(action==='topic')captureModal({domain:data.profile.focus,title:button.dataset.topic});
     else if(action==='domain'){domainFilter=button.dataset.domain;location.hash='library';page='library';render();}
     else if(action==='news-save'){const item=news.items.find(n=>n.url===button.dataset.url);if(item)captureModal({title:item.title,source:item.url,type:item.category==='AI'?'knowledge':'event',domain:item.category==='AI'?DOMAINS[0]:DOMAINS[1]});}
-    else if(action==='project'){if(!requireAccount())return;modal('把理解，做成一件小事','选一个范围足够小、做完能看到结果的课题。',`<form id="project-form">${inputField('课题名称','title','例如：用一个实验解释过拟合','',true)}${inputField('怎样算完成','description','写清要交付的小成果。','',false,true)}<p class="form-error" role="alert"></p><button class="btn primary" type="submit">加入我的实践</button></form>`);}
+    else if(action==='project')projectModal();
     else if(action==='project-toggle'){if(!requireAccount())return;data.projects=data.projects.map(p=>p.id===id?{...p,done:!p.done}:p);await saveAndRender('课题进度已更新。');}
     else if(action==='project-delete')confirmDelete('projects',id);
     else if(action==='journal-delete')confirmDelete('journals',id);
@@ -412,13 +474,15 @@ document.addEventListener('click',async(event)=>{
       if(!requireAccount())return;const kind=button.dataset.kind;if(!['projects','journals','entries'].includes(kind))return;
       const removed=data[kind].find(x=>x.id===id);data[kind]=data[kind].filter(x=>x.id!==id);
       const formName={projects:'project-form',journals:'journal-form',entries:'entry-form'}[kind];
-      for(const draftKey of Object.keys(data.drafts||{}))if(draftKey.startsWith(`${formName}:${id}:`)||(kind==='journals'&&removed&&draftKey.startsWith(`journal-form:${removed.date}:`)))delete data.drafts[draftKey];
+      for(const [draftKey,draft] of Object.entries(data.drafts||{}))if(draft.recordId===id&&draft.kind==={projects:'project',journals:'journal',entries:'entry'}[kind])delete data.drafts[draftKey];
       if(await saveAndRender('记录已删除。')){closeModal();if(writerState)exitWriter();}
     }
     else if(action==='export-record')exportRecord(button.dataset.kind,id);
     else if(action==='export-current')exportCurrentForm();
-    else if(action==='draft-restore')restoreDraft();
-    else if(action==='draft-discard')discardDraft();
+    else if(action==='draft-open')openDraft(id);
+    else if(action==='draft-delete')deleteDraftModal(id);
+    else if(action==='draft-delete-confirm')await deleteDraft(id);
+    else if(action==='draft-export')exportDraft(id);
     else if(action==='md-mode')setEditorMode(button);
     else if(action==='md-format')formatEditor(button);
     else if(action==='writer-preview')previewWriter();
@@ -445,7 +509,7 @@ document.addEventListener('submit',async(event)=>{
   try {
     if(form.id==='auth-form') {
       const password=String(fd.get('password')||'');
-      if(form.dataset.login==='true'){storedRaw=localStorage.getItem(VAULT_KEY);const result=await unseal(JSON.parse(storedRaw),password);data=result.data;key=result.key;salt=result.salt;}
+      if(form.dataset.login==='true'){storedRaw=localStorage.getItem(VAULT_KEY);const result=await unseal(JSON.parse(storedRaw),password);data=migrateDrafts(result.data);key=result.key;salt=result.salt;}
       else {if(localStorage.getItem(VAULT_KEY))throw new Error('已有空间，请先登录或从备份恢复。');if(password.length<10)throw new Error('请至少设置 10 位密码。');if(password!==String(fd.get('confirm')))throw new Error('两次输入的密码不一致。');if(!v('name'))throw new Error('请写一个称呼。');const result=await createKey(password);key=result.key;salt=result.salt;data=freshData(v('name'));storedRaw=null;}
       preview=false;conflict=false;saveFailure=null;lastActivity=Date.now();await persist();closeModal();
       const requested=pendingWriterRoute||(location.hash.startsWith('#write/')?location.hash.slice(1):'');pendingWriterRoute='';
@@ -453,9 +517,10 @@ document.addEventListener('submit',async(event)=>{
     }else if(form.id==='import-form'||form.id==='cloud-restore-form') {
       let vault,sha;
       if(form.id==='import-form'){const file=fd.get('file');if(!file?.size)throw new Error('请选择备份文件。');if(file.size>28000000)throw new Error('文件过大，最多支持 20 MB 的记录。');vault=JSON.parse(await file.text());}else {vault=form._remote.vault;sha=form._remote.sha;}
-      const result=await unseal(vault,String(fd.get('password')||''));await saveQueue.catch(()=>{});storedRaw=localStorage.getItem(VAULT_KEY);key=result.key;salt=result.salt;data=result.data;preview=false;conflict=false;await persist();if(sha)cloudSha=sha;closeModal();render();toast('已恢复你的积累。');
+      const result=await unseal(vault,String(fd.get('password')||''));await saveQueue.catch(()=>{});storedRaw=localStorage.getItem(VAULT_KEY);key=result.key;salt=result.salt;data=migrateDrafts(result.data);preview=false;conflict=false;await persist();if(sha)cloudSha=sha;closeModal();render();toast('已恢复你的积累。');
     }else {
       if(!requireAccount())return;
+      const beforeSave=structuredClone(data);
       if(form.id==='journal-form') {
         if(!v('experience'))throw new Error('留下一句真实的经历吧。');const date=v('date');if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date>dayKey())throw new Error('记录日期应为今天或过去的一天。');
         const duplicate=data.journals.find(j=>j.date===date&&j.id!==form.dataset.id);if(duplicate)throw new Error('这一天已有手记，请先打开对应手记继续编辑。');
@@ -471,8 +536,11 @@ document.addEventListener('submit',async(event)=>{
       else if(form.id==='project-form'){if(!v('title'))throw new Error('请写一个课题名称。');data.projects.push({id:uid(),title:v('title'),description:v('description'),done:false});}
       else if(form.id==='cloud-form'){const status=$('#cloud-status');status.textContent='正在检查私有仓库与加密快照…';await cloudSync(form,submit?.value || 'push');if(status.isConnected)status.textContent='操作完成。';return;}
       else return;
-      clearSavedDraft();
-      if(await saveAndRender('已留下今天的一点成长。'))closeModal();
+      const savedDraftId=currentDraftKey,savedDraft=data.drafts?.[savedDraftId];
+      clearTimeout(draftTimer);editorDirty=false;
+      if(savedDraft)delete data.drafts[savedDraftId];
+      if(await saveAndRender('已保存为正式记录，并从草稿箱移出。')){currentDraftKey='';const active=editableForm();if(active)active.dataset.draftId='';closeModal();}
+      else {data=beforeSave;currentDraftKey=savedDraftId;editorDirty=true;captureDraft();}
     }
   }catch(e){if(error)error.textContent=e instanceof SyntaxError?'文件格式不正确，请选择日知加密备份。':e.message;else toast(e.message || '操作失败，请重试。');const status=$('#cloud-status');if(status)status.textContent=e.message;}
   finally {if(submit)submit.disabled=false;}

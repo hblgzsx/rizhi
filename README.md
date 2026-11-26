@@ -14,7 +14,7 @@
 
 日记、知识笔记和周复盘在独立的「写作间」页面打开，地址为 `#write/journal/…`、`#write/entry/…` 或 `#write/weekly/…`。页面提供宽幅正文、笔记信息侧栏和顶部固定的保存、全文预览、Markdown 导出、返回按钮；手机上笔记信息移到正文下方。刷新写作地址后需重新登录，再恢复加密草稿；浏览器前进、后退也会保管未保存的草稿。仅回想、登录和删除确认等简短操作保留弹窗。
 
-输入停顿约 700 毫秒后自动加密保存草稿，关闭编辑时也会提交草稿。重新打开后点击「恢复草稿」继续。草稿不计入成长统计；全量加密备份包含草稿，全量 Markdown 包含正式记录。
+输入停顿约 700 毫秒后自动加密保存草稿，关闭编辑时也会提交草稿。每次新建独立分配草稿编号，互不覆盖；未完成内容集中列在导航中的「草稿箱」，可按标题、类型、更新时间和摘要找到，继续写、单篇导出或确认删除。空白写作页不产生草稿，新建入口不加载历史草稿。保存为正式记录成功后，只移出当前草稿；编辑正式记录的未保存修改不会提前覆盖原文。旧版草稿在登录或恢复备份时自动迁入草稿箱。草稿不计入成长统计；全量加密备份包含草稿，全量 Markdown 包含正式记录。
 
 每篇日记、卡片和周复盘均可单独下载 `.md`，编辑时还可下载未正式保存的当前内容。文件名统一为：
 
@@ -73,6 +73,6 @@ Pages 目标地址：`https://hblgzsx.github.io/rizhi/`
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\publish.ps1
 ```
 
-脚本先验证账号、测试和构建，再检查已有仓库、仅暂存明确列出的源文件、推送并启用 Pages，等待部署成功后检查 HTTP 响应。不会强推，不会上传 `test-results/` 或私人备份。脚本尚未在当前受限网络环境中执行；验证情况见 [docs/VALIDATION.md](docs/VALIDATION.md)。
+脚本先验证账号、测试和构建，再检查已有仓库、仅暂存明确列出的源文件、推送并启用 Pages，等待部署成功后检查 HTTP 响应。不会强推，不会上传 `test-results/` 或私人备份。验证情况见 [docs/VALIDATION.md](docs/VALIDATION.md)。
 
 技术资料：[GitHub Pages 自定义工作流](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)、[GitHub 仓库内容 API](https://docs.github.com/en/rest/repos/contents)、[Web Crypto](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API)。
