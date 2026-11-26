@@ -17,6 +17,7 @@ export function recordMarkdown(kind,record,{name='我',now=new Date()}={}) {
   const title=kind==='journals'?`${record.date} · 生活手记`:record.title || '这一周的新理解';
   let content=`# ${title}\n\n记录日期：${record.date}  \n类型：${label}  \n作者：${name}  \n导出时间：${timestamp(now)}（北京时间）\n\n`;
   if(kind==='journals') content+=`心情：${record.mood||'未记录'}\n\n`+section('今天经历了什么',record.experience)+section('我的感受与想法',record.thought)+section('今天带走的一句话',record.takeaway);
+  if(kind==='entries')content+=section('来源平台与账号',[record.sourcePlatform,record.sourceAuthor].filter(Boolean).join(' · '));
   if(kind==='entries') content+=`所属领域：${record.domain}  \n消化阶段：${{inbox:'待消化',thinking:'在思考',understood:'能讲清'}[record.stage]||'未分类'}  \n标签：${(record.tags||[]).join('、')}\n\n`+section('原文链接',record.source)+section('收集的信息',record.content)+section('事实与证据',record.fact)+section('我目前的解释',record.opinion)+section('适用边界与反例',record.boundary)+section('规律与连接',record.rule)+section('继续追问',record.question);
   if(kind==='reviews') content+=section('原来的想法',record.before)+section('新的证据',record.evidence)+section('现在的解释',record.insight)+section('边界与反例',record.boundary)+section('下周的小问题',record.next);
   return content.trimEnd()+'\n';

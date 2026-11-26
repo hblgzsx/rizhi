@@ -1,6 +1,7 @@
-import { DOMAINS, dayKey, addDays, uid, freshData, activeDates, stats, reviewEntry, createKey, seal, unseal, migrateDrafts } from './core.js?v=3-drafts';
+import { DOMAINS, dayKey, addDays, uid, freshData, activeDates, stats, reviewEntry, createKey, seal, unseal, migrateDrafts } from './core.js?v=4-sources';
 import { renderMarkdown } from './markdown.js';
-import { exportFilename, recordMarkdown, allMarkdown } from './exports.js';
+import { exportFilename, recordMarkdown, allMarkdown } from './exports.js?v=4-sources';
+import { SOCIAL_SOURCES, detectPlatform, extractSharedLink } from './sources.js';
 
 const VAULT_KEY = 'rizhi.v1.vault';
 const $ = (s, root = document) => root.querySelector(s);
@@ -102,13 +103,22 @@ function journalView() {
   return `${heading('LIFE, WELL NOTICED', '生活值得被记住', '经历是理解世界的起点，感受是理解自己的线索。', btn(icon('plus') + ' 写一篇手记', 'journal'))}<div class="journal-layout"><div>${data.journals.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(j => `<article class="panel journal-card"><div class="journal-date"><strong>${labelDate(j.date)}</strong><span>${esc(j.mood || '平静')}</span><div class="journal-actions">${btn("下载 .md","export-record","text",`data-kind="journals" data-id="${esc(j.id)}"`)}<button class="text-button" data-action="journal" data-id="${esc(j.id)}">编辑</button></div></div>${[['今天经历了什么', j.experience], ['我当时的感受与想法', j.thought], ['今天带走的一句话', j.takeaway]].filter(([,v])=>v).map(([label, value])=>`<section><span class="field-caption">${label}</span><div class="md-content">${renderMarkdown(value)}</div></section>`).join('')}</article>`).join('') || empty('给今天留一个坐标', '不需要惊天动地。让你停顿的一瞬间，就值得记录。', btn('开始第一篇手记', 'journal'))}</div><aside class="panel writing-guide"><span class="eyebrow">A SMALL PRACTICE</span><h2>把注意力还给生活</h2><ol><li>写下发生了什么。<small>一个具体的场景，比抽象的感慨更珍贵。</small></li><li>辨认自己的感受。<small>可以困惑，可以平淡，也可以开心。</small></li><li>留一点给明天。<small>一个发现、一个问题，或一句提醒。</small></li></ol><div class="gentle-tip">不必每天写长篇。<br>真实的一句话，也是一篇好手记。</div></aside></div>`;
 }
 function libraryView() {
-  const entries = data.entries.filter(e => (filter === '全部' || e.stage === filter) && (domainFilter === '全部' || e.domain === domainFilter) && `${e.title} ${e.content} ${e.fact || ''} ${e.opinion || ''} ${e.rule || ''} ${e.tags.join(' ')}`.toLowerCase().includes(query.toLowerCase()));
+  const entries = data.entries.filter(e => (filter === '全部' || e.stage === filter) && (domainFilter === '全部' || e.domain === domainFilter) && `${e.title} ${e.content} ${e.fact || ''} ${e.opinion || ''} ${e.rule || ''} ${e.sourcePlatform||''} ${e.sourceAuthor||''} ${e.tags.join(' ')}`.toLowerCase().includes(query.toLowerCase()));
   return `${heading('A GARDEN OF UNDERSTANDING', '让知识慢慢成林', '从“看过”到“想过”，再到“我能解释”。每一张卡片，都是一颗种子。', btn(icon('plus') + ' 种下一颗新知', 'capture'))}<div class="library-toolbar"><div class="tabs" role="group" aria-label="消化阶段">${[['全部','全部种子'],['inbox','待消化'],['thinking','在思考'],['understood','能讲清']].map(([id,l])=>`<button class="tab ${filter===id?'selected':''}" data-action="filter" data-filter="${id}">${l}<span>${id==='全部'?data.entries.length:data.entries.filter(e=>e.stage===id).length}</span></button>`).join('')}</div><div class="filter-controls"><select id="domain-filter" aria-label="按领域筛选"><option>全部</option>${[...new Set([...DOMAINS, data.profile.focus])].map(d=>`<option ${domainFilter===d?'selected':''}>${esc(d)}</option>`).join('')}</select><label class="search-field">${icon('search')}<input id="library-search" placeholder="搜索你的想法…" value="${esc(query)}" aria-label="搜索知识卡片"></label></div></div><div id="library-results" class="library-grid">${entries.map(e=>entryCard(e)).join('') || empty('这里还没有种子', '收集一个问题，附上来源，再试着写一点自己的理解。', btn('记录一条信息', 'capture'))}</div>`;
+}
+function platformHub() {
+  return `<section class="platform-hub"><div class="section-heading"><div><span class="eyebrow">MANY WINDOWS, YOUR OWN VIEW</span><h2>从你常看的平台，认识世界</h2></div>${btn(icon('plus')+' 粘贴分享链接','share-import','outline')}</div><p class="platform-hint">视频、帖子、长文都能记录。打开平台发现话题，再把链接和自己的观察带回来。</p><div class="platform-grid">${SOCIAL_SOURCES.map(s=>`<article class="platform-card"><div class="platform-card-head"><span class="platform-mark ${s.tone}">${esc(s.mark)}</span><div><h3>${esc(s.name)}</h3><span>平台浏览 · 手动收藏</span></div></div><p>${esc(s.description)}</p><div class="platform-card-actions"><a href="${s.url}" target="_blank" rel="noopener noreferrer">去逛逛 ↗</a><button data-action="share-import" data-platform="${esc(s.name)}">${icon('plus')} 记一条</button></div></article>`).join('')}</div><div class="platform-reading-note">${icon('leaf')}<p>先记录“谁说了什么”，再判断“是否如此”。可以把不同平台对同一事件的说法放在一起比较。</p></div></section>`;
 }
 function worldView() {
   const sourceErrors = news.errors?.length || 0;
-  return `${heading('LOOK CLOSELY, THINK CLEARLY', '看见世界，也看见脉络', '每天选一件值得理解的事。追原文，辨事实，多问一步为什么。')}<div class="world-principle"><span>${icon('globe')}</span><div><strong>今天只挑一件事，慢一点理解。</strong><p>发生了什么 → 各方想要什么 → 规则怎样起作用 → 哪些证据能改变我的判断。</p></div>${btn('记录一个事件', 'event', 'outline')}</div><div class="section-heading"><h2>每日信息窗</h2><span>${news.generatedAt ? '更新于 ' + new Date(news.generatedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }) : '等待首次资讯更新'}</span></div><p class="quiet news-disclaimer">自动整理的来源标题，未经系统核验。请阅读原文后形成判断。${sourceErrors ? ` 本次 ${sourceErrors} 个信息源暂时不可用，保留的旧条目会显示原始日期。` : ''}</p><div class="news-grid">${news.items.slice(0, 18).map(n=>`<article class="panel news-card"><div class="news-meta"><span>${esc(n.source)}</span><span>${esc(n.published?.slice(0,10) || '来源未标注日期')}</span></div><h3>${esc(n.title)}</h3><div class="news-card-bottom">${sourceLink(n.url)}<button class="text-button" data-action="news-save" data-url="${esc(n.url)}">${icon('plus')} 收入花园</button></div></article>`).join('') || empty('先从可靠的原文开始', '资讯更新暂未完成。你仍然可以打开下面的信息源，收藏值得理解的内容。')}</div><div class="section-heading"><h2>给自己留几个观察窗口</h2><span>广度探索 · 回到一手资料</span></div><div class="source-grid">${[['中国新闻网','社会与公共事务','https://www.chinanews.com.cn/'],['中国政府网','政策与社会规则','https://www.gov.cn/'],['arXiv · 人工智能','论文与研究进展','https://arxiv.org/list/cs.AI/recent'],['Hacker News','技术与创业讨论','https://news.ycombinator.com/'],['Our World in Data','用数据理解世界','https://ourworldindata.org/'],['国家统计局','经济与社会数据','https://www.stats.gov.cn/']].map(([t,d,u])=>`<a class="source-card" href="${u}" target="_blank" rel="noopener noreferrer"><span>${t}<small>${d}</small></span>${icon('arrow')}</a>`).join('')}</div>`;
+  return `${heading('LOOK CLOSELY, THINK CLEARLY', '看见世界，也看见脉络', '从不同平台发现话题，读原文、看上下文，慢慢形成自己的判断。')}<div class="world-principle"><span>${icon('globe')}</span><div><strong>今天只挑一件事，慢一点理解。</strong><p>发生了什么 → 各方想要什么 → 规则怎样起作用 → 哪些证据能改变我的判断。</p></div>${btn('记录一个事件', 'event', 'outline')}</div>${platformHub()}<div class="section-heading"><h2>每日信息窗</h2><span>${news.generatedAt ? '更新于 ' + new Date(news.generatedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }) : '等待首次资讯更新'}</span></div><p class="quiet news-disclaimer">以下是 RSS 自动整理的来源标题，未经系统核验。社交平台内容请通过上方入口浏览或粘贴链接收藏。${sourceErrors ? ` 本次 ${sourceErrors} 个信息源暂时不可用，保留条目显示原始日期。` : ''}</p><div class="news-grid">${news.items.slice(0, 18).map(n=>`<article class="panel news-card"><div class="news-meta"><span>${esc(n.source)}</span><span>${esc(n.published?.slice(0,10) || '来源未标注日期')}</span></div><h3>${esc(n.title)}</h3><div class="news-card-bottom">${sourceLink(n.url)}<button class="text-button" data-action="news-save" data-url="${esc(n.url)}">${icon('plus')} 收入花园</button></div></article>`).join('') || empty('从一个感兴趣的问题开始', '每日资讯暂未更新。你仍可以浏览上方平台，或打开下面的一手资料窗口。')}</div><div class="section-heading"><h2>再找一个资料窗口，核对一下</h2><span>原文、论文与公开数据</span></div><div class="source-grid">${[['中国新闻网','社会与公共事务','https://www.chinanews.com.cn/'],['中国政府网','政策原文与公开信息','https://www.gov.cn/'],['arXiv · 人工智能','论文与研究进展','https://arxiv.org/list/cs.AI/recent'],['Hacker News','技术与创业讨论','https://news.ycombinator.com/'],['Our World in Data','用数据理解世界','https://ourworldindata.org/'],['国家统计局','经济与社会数据','https://www.stats.gov.cn/']].map(([t,d,u])=>`<a class="source-card" href="${u}" target="_blank" rel="noopener noreferrer"><span>${t}<small>${d}</small></span>${icon('arrow')}</a>`).join('')}</div>`;
 }
+function shareImportModal(platform='') {
+  if(!requireAccount())return;
+  modal(platform?'从'+esc(platform)+'留下一条新知':'把平台上的发现，带回这里','可粘贴完整分享文案或网页链接，系统会提取第一个网页链接；多条内容请分开收藏。',`<form id="share-import-form"><label>分享文字或链接<textarea name="shared" required rows="4" maxlength="12000" placeholder="例如：复制抖音、小红书、B 站的分享内容，粘贴到这里…"></textarea></label><div id="share-detected" class="share-detected" role="status">等待粘贴链接 · 不会自动抓取视频或帖子正文</div><div class="form-row"><label>来源平台<select name="platform"><option value="">识别链接 / 其他来源</option>${SOCIAL_SOURCES.map(s=>`<option ${platform===s.name?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label>${inputField('作者 / 账号（选填）','author','记住这是谁的说法')}</div>${inputField('给这条发现起个标题','title','你最想留住的那个问题或观点','',true)}${inputField('我想记住的要点（选填）','summary','视频讲了什么？哪些是事实，哪些是作者观点？','',false,true)}<p class="form-error" role="alert"></p><button type="submit" class="btn primary full">带到写作间，继续整理 ${icon('arrow')}</button><p class="quiet">平台页面可能需要在平台内登录。这里保存链接和你填写的笔记，不代表已核实原内容。</p></form>`,true);
+}
+
+
 const curriculum = [
   ['建立地图', '计算机与 AI 的全貌', ['计算、数据与算法如何连接', '机器学习、深度学习、大模型的关系', '给一位非专业朋友画一张 AI 地图']],
   ['打好地基', '从数据到模型', ['训练集、验证集与数据泄漏', '损失函数、优化与泛化', '用一个小实验解释过拟合']],
@@ -162,6 +172,8 @@ function openWriter(title,subtitle,content) {
   const label={journal:'生活手记',entry:'知识笔记',weekly:'每周复盘'}[kind];
   $('#writer-root').innerHTML=`<section class="writer-page"><header class="writer-topbar"><div class="writer-top-left"><button class="writer-back" data-action="close" aria-label="保存草稿并返回">${icon('arrow')}<span>返回</span></button><a class="writer-brand" href="#today">${icon('book')}日知<span>/</span><small>写作间</small></a></div><div class="writer-top-actions"><span id="writer-status">${icon('lock')}草稿自动加密保存</span><button class="btn outline" data-action="writer-preview">${icon('book')}<span>全文预览</span></button><button class="btn outline writer-download" data-action="export-current">${icon('download')}<span>导出 .md</span></button><button class="btn primary" data-action="writer-save" type="submit" form="${form.id}">${icon('check')}<span>保存笔记</span></button></div></header><main id="writer-main" class="writer-main" tabindex="-1"><div class="writer-intro"><div><span class="eyebrow">A QUIET PLACE TO THINK</span><h1>${title}<span>。</span></h1><p>${subtitle}</p></div><div class="writer-type">${icon(kind==='journal'?'pen':kind==='entry'?'leaf':'refresh')}<span>${label}</span></div></div><div id="writer-form-slot"></div><section class="writer-full-preview" hidden aria-label="全文预览"><div class="writer-preview-heading"><span class="eyebrow">READ YOUR OWN WORDS</span><span>你的文字，慢慢有了形状</span></div><article class="md-content"></article></section><div class="writer-bottom-note"><span>日有所记，知有所长。</span><span>Ctrl / ⌘ + S 保存 · Markdown 写作</span></div></main></section>`;
   $('#writer-form-slot').append(form);
+  const sourcePlatform=form.elements.namedItem('sourcePlatform');
+  if(sourcePlatform){const originalPlatform=form.dataset.originalPlatform;if(originalPlatform&&![...sourcePlatform.options].some(option=>option.value===originalPlatform)){sourcePlatform.add(new Option(originalPlatform,originalPlatform));sourcePlatform.value=originalPlatform;}}
   enhanceEditor();
   form.classList.add('writer-form');
   const fields=document.createElement('div');fields.className='writer-fields';
@@ -173,7 +185,7 @@ function openWriter(title,subtitle,content) {
   const primary=form.elements.namedItem(primaryName)?.closest('label');
   if(primary){primary.classList.add('writer-primary-field');fields.append(primary);}
   const draftNote=$('.draft-status',form);if(draftNote)fields.prepend(draftNote);
-  const metaNames={journal:['date','mood'],entry:['domain','type','stage','tags','source'],weekly:['next']}[kind];
+  const metaNames={journal:['date','mood'],entry:['domain','type','stage','tags','source','sourcePlatform','sourceAuthor'],weekly:['next']}[kind];
   for(const name of metaNames){const field=form.elements.namedItem(name)?.closest('label');if(field)rail.append(field);}
   const supplement=document.createElement('div');supplement.className='writer-supplement';
   for(const node of [...form.children]){
@@ -186,6 +198,8 @@ function openWriter(title,subtitle,content) {
   const exportRow=$('.editor-local-export',form);if(exportRow)exportRow.remove();
   rail.insertAdjacentHTML('beforeend',`<div class="writer-rail-tip">${icon('leaf')}<p>先把想法写下来。<br>不必一开始就很完整。</p><span>文字会在一次次回看中，<br>长出自己的分量。</span></div><div class="writer-shortcuts"><span><kbd>Ctrl</kbd> + <kbd>S</kbd> 保存</span><span><kbd>Ctrl</kbd> + <kbd>B</kbd> 粗体</span><span><kbd>Ctrl</kbd> + <kbd>I</kbd> 斜体</span></div>`);
   form.append(fields,rail);
+  const sourceField=form.elements.namedItem('source');if(sourceField)sourceField.maxLength=4000;
+  if(!form.dataset.id&&!data.drafts?.[currentDraftKey]&&[...form.querySelectorAll('[name="title"], textarea')].some(field=>field.value.trim())){editorDirty=true;draftTimer=setTimeout(flushDraft,700);}
   // Start long-form writing with a wide, roomy source editor.
   const mainEditor=primary?.querySelector('.md-editor');if(mainEditor){mainEditor.dataset.mode='edit';mainEditor.querySelectorAll('.md-modes button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode==='edit')));}
   if(location.hash!==`#${route}`)history.pushState({writerFrom:from},'',`#${route}`);
@@ -236,11 +250,11 @@ function journalModal(id, quick = false) {
 function captureModal(options = {}) {
   if (!requireAccount()) return;
   const e = data.entries.find(x=>x.id===options.id), value = e || options;
-  modal(e?'照料这颗知识种子':options.type==='event'?'理解一件事，从事实开始':'种下一颗新的好奇心', '先留下值得记住的，再慢慢长出自己的理解。', `<form id="entry-form" data-id="${e?.id || ''}">${inputField('标题','title','给这件事或这个想法起个名字',value.title,true)}<div class="form-row"><label>所属领域<select name="domain">${[...new Set([...DOMAINS,data.profile.focus])].map(d=>`<option ${value.domain===d?'selected':''}>${esc(d)}</option>`).join('')}</select></label><label>记录类型<select name="type"><option value="knowledge" ${value.type!=='event'?'selected':''}>知识笔记</option><option value="event" ${value.type==='event'?'selected':''}>事件观察</option></select></label></div>${inputField('原文链接','source','https://…（优先放原始来源）',value.source)}${inputField('我收集到的信息','content','用自己的话记要点，不必复制整篇文章。',value.content,false,true)}<div class="form-row"><label>消化阶段<select name="stage"><option value="inbox" ${value.stage==='inbox'?'selected':''}>待消化 · 先收进来</option><option value="thinking" ${value.stage==='thinking'?'selected':''}>在思考 · 有疑问或初步理解</option><option value="understood" ${value.stage==='understood'?'selected':''}>能讲清 · 有解释、有证据、有边界</option></select></label>${inputField('标签（逗号分隔）','tags','例：大模型，产业观察',value.tags?.join('，'))}</div><details class="thinking-fields" ${e || options.type==='event' || options.expand?'open':''}><summary>${icon('spark')} 多想一步：把信息变成见解</summary><div class="thinking-prompt">事件观察时，可从参与者、利益、规则、成本和信息差入手。结论先作为假设，给反例留位置。</div>${inputField('已确认的事实与证据','fact','什么确实发生了？依据是什么？哪些仍待核实？',value.fact,false,true)}${inputField('我目前的解释','opinion','为什么会这样？我的判断是什么？',value.opinion,false,true)}${inputField('适用边界与反例','boundary','什么情况下不成立？什么新证据会让我改变判断？',value.boundary,false,true)}${inputField('提炼出的规律 / 与已有知识的连接','rule','这件事让我理解了什么？它和过去哪个经验相关？',value.rule,false,true)}${inputField('想继续追问的问题','question','下一步想弄明白什么？',value.question,false,true)}</details><p class="form-error" role="alert"></p><div class="form-footer">${e?btn('删除卡片','entry-delete','text danger',`data-id="${e.id}"`):'<span class="quiet">保留疑问，也是进步。</span>'}<button class="btn primary" type="submit">${e?'保存新的理解':'种下这颗种子'} ${icon('check')}</button></div></form>`,true);
+  modal(e?'照料这颗知识种子':options.type==='event'?'理解一件事，从事实开始':'种下一颗新的好奇心', '先留下值得记住的，再慢慢长出自己的理解。', `<form id="entry-form" data-id="${e?.id || ''}" data-source-platform="${esc(value.sourcePlatform||detectPlatform(value.source))}">${inputField('标题','title','给这件事或这个想法起个名字',value.title,true)}<div class="form-row"><label>所属领域<select name="domain">${[...new Set([...DOMAINS,data.profile.focus])].map(d=>`<option ${value.domain===d?'selected':''}>${esc(d)}</option>`).join('')}</select></label><label>记录类型<select name="type"><option value="knowledge" ${value.type!=='event'?'selected':''}>知识笔记</option><option value="event" ${value.type==='event'?'selected':''}>事件观察</option></select></label></div>${inputField('来源链接','source','支持抖音、微博、B 站、小红书等分享链接',value.source)}<div class="form-row"><label>来源平台<select name="sourcePlatform"><option value="">自动识别 / 其他来源</option>${SOCIAL_SOURCES.map(s=>`<option ${(value.sourcePlatform||detectPlatform(value.source))===s.name?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label>${inputField('作者 / 账号','sourceAuthor','原作者或发布账号（选填）',value.sourceAuthor)}</div>${inputField('我收集到的信息','content','用自己的话记要点，不必复制整篇文章。',value.content,false,true)}<div class="form-row"><label>消化阶段<select name="stage"><option value="inbox" ${value.stage==='inbox'?'selected':''}>待消化 · 先收进来</option><option value="thinking" ${value.stage==='thinking'?'selected':''}>在思考 · 有疑问或初步理解</option><option value="understood" ${value.stage==='understood'?'selected':''}>能讲清 · 有解释、有证据、有边界</option></select></label>${inputField('标签（逗号分隔）','tags','例：大模型，产业观察',value.tags?.join('，'))}</div><details class="thinking-fields" ${e || options.type==='event' || options.expand?'open':''}><summary>${icon('spark')} 多想一步：把信息变成见解</summary><div class="thinking-prompt">事件观察时，可从参与者、利益、规则、成本和信息差入手。结论先作为假设，给反例留位置。</div>${inputField('已确认的事实与证据','fact','什么确实发生了？依据是什么？哪些仍待核实？',value.fact,false,true)}${inputField('我目前的解释','opinion','为什么会这样？我的判断是什么？',value.opinion,false,true)}${inputField('适用边界与反例','boundary','什么情况下不成立？什么新证据会让我改变判断？',value.boundary,false,true)}${inputField('提炼出的规律 / 与已有知识的连接','rule','这件事让我理解了什么？它和过去哪个经验相关？',value.rule,false,true)}${inputField('想继续追问的问题','question','下一步想弄明白什么？',value.question,false,true)}</details><p class="form-error" role="alert"></p><div class="form-footer">${e?btn('删除卡片','entry-delete','text danger',`data-id="${e.id}"`):'<span class="quiet">保留疑问，也是进步。</span>'}<button class="btn primary" type="submit">${e?'保存新的理解':'种下这颗种子'} ${icon('check')}</button></div></form>`,true);
 }
 function entryModal(id) {
   const e=data.entries.find(x=>x.id===id); if(!e)return;
-  modal(esc(e.title),`${esc(e.domain)} · ${labelDate(e.date)}`,`<div class="entry-detail">${sourceLink(e.source)}${[['收集的信息',e.content],['事实与证据',e.fact],['我目前的解释',e.opinion],['边界与反例',e.boundary],['规律与连接',e.rule],['继续追问',e.question]].filter(([,v])=>v).map(([t,v])=>`<section><h3>${t}</h3><div class="md-content">${renderMarkdown(v)}</div></section>`).join('')}<div class="tags">${e.tags.map(t=>`<span># ${esc(t)}</span>`).join('')}</div><div class="form-footer"><span class="quiet">${e.stage==='inbox'?'整理后进入回想计划':'下次回想：'+e.nextReview}</span>${btn('下载此篇 .md','export-record','outline',`data-kind="entries" data-id="${esc(e.id)}"`)}${btn('继续思考 '+icon('pen'),'edit-entry','primary',`data-id="${esc(e.id)}"`)}</div></div>`,true);
+  modal(esc(e.title),`${esc(e.domain)} · ${labelDate(e.date)}`,`<div class="entry-detail">${sourceLink(e.source)}${e.sourcePlatform||e.sourceAuthor?`<p class="source-attribution">${esc(e.sourcePlatform||detectPlatform(e.source)||'其他来源')}${e.sourceAuthor?' · '+esc(e.sourceAuthor):''}</p>`:''}${[['收集的信息',e.content],['事实与证据',e.fact],['我目前的解释',e.opinion],['边界与反例',e.boundary],['规律与连接',e.rule],['继续追问',e.question]].filter(([,v])=>v).map(([t,v])=>`<section><h3>${t}</h3><div class="md-content">${renderMarkdown(v)}</div></section>`).join('')}<div class="tags">${e.tags.map(t=>`<span># ${esc(t)}</span>`).join('')}</div><div class="form-footer"><span class="quiet">${e.stage==='inbox'?'整理后进入回想计划':'下次回想：'+e.nextReview}</span>${btn('下载此篇 .md','export-record','outline',`data-kind="entries" data-id="${esc(e.id)}"`)}${btn('继续思考 '+icon('pen'),'edit-entry','primary',`data-id="${esc(e.id)}"`)}</div></div>`,true);
 }
 function weeklyModal(id) {
   if(!requireAccount())return; const r=data.reviews.find(x=>x.id===id) || {};
@@ -291,7 +305,11 @@ function formDraft(form) {
 }
 function prepareDraftForm(form) {
   if(form.dataset.draftReady)return;
-  form.dataset.draftReady='true';form.dataset.baseline=JSON.stringify(formDraft(form));
+  if(form.id==='entry-form'&&form.dataset.sourcePlatform){const field=form.elements.sourcePlatform;if(![...field.options].some(o=>o.value===form.dataset.sourcePlatform))field.add(new Option(form.dataset.sourcePlatform,form.dataset.sourcePlatform));field.value=form.dataset.sourcePlatform;}
+  form.dataset.draftReady='true';
+  const baseline=formDraft(form);
+  if(!form.dataset.id)for(const name of ['title','content','experience','thought','takeaway','before','evidence','insight','boundary','rule','question','fact','description'])if(name in baseline)baseline[name]='';
+  form.dataset.baseline=JSON.stringify(baseline);
   form.dataset.draftId=draftToResume?.id || uid();
   if(draftToResume){
     for(const [name,value] of Object.entries(draftToResume.fields||{})){
@@ -449,6 +467,7 @@ document.addEventListener('click',async(event)=>{
     else if(action==='auth')authModal();
     else if(action==='lock')await lock();
     else if(action==='capture')captureModal();
+    else if(action==='share-import')shareImportModal(button.dataset.platform||'');
     else if(action==='event')captureModal({type:'event',domain:DOMAINS[1]});
     else if(action==='journal')journalModal(id);
     else if(action==='quick-journal')journalModal(null,true);
@@ -464,7 +483,7 @@ document.addEventListener('click',async(event)=>{
     else if(action==='focus-note')captureModal({domain:data.profile.focus});
     else if(action==='topic')captureModal({domain:data.profile.focus,title:button.dataset.topic});
     else if(action==='domain'){domainFilter=button.dataset.domain;location.hash='library';page='library';render();}
-    else if(action==='news-save'){const item=news.items.find(n=>n.url===button.dataset.url);if(item)captureModal({title:item.title,source:item.url,type:item.category==='AI'?'knowledge':'event',domain:item.category==='AI'?DOMAINS[0]:DOMAINS[1]});}
+    else if(action==='news-save'){const item=news.items.find(n=>n.url===button.dataset.url);if(item)captureModal({title:item.title,source:item.url,sourcePlatform:item.source,type:item.category==='AI'?'knowledge':'event',domain:item.category==='AI'?DOMAINS[0]:DOMAINS[1]});}
     else if(action==='project')projectModal();
     else if(action==='project-toggle'){if(!requireAccount())return;data.projects=data.projects.map(p=>p.id===id?{...p,done:!p.done}:p);await saveAndRender('课题进度已更新。');}
     else if(action==='project-delete')confirmDelete('projects',id);
@@ -494,6 +513,14 @@ document.addEventListener('click',async(event)=>{
 });
 document.addEventListener('change',event=>{if(event.target.id==='domain-filter'){domainFilter=event.target.value;render();}});
 document.addEventListener('input',event=>{
+  if(event.target.matches('#share-import-form [name=shared]')){
+    const form=event.target.form,link=extractSharedLink(event.target.value),status=$('#share-detected');
+    status.textContent=link?`${link.platform?'已识别：'+link.platform:'已提取网页链接'} · ${link.url}`:'没有找到网页链接，请粘贴完整的分享文字或 http / https 链接';
+    if(link?.platform)form.elements.platform.value=link.platform;
+  }
+  if(event.target.matches('#entry-form [name=source]')){
+    const platform=detectPlatform(event.target.value);if(platform)event.target.form.elements.sourcePlatform.value=platform;
+  }
   const form=event.target.closest('form');
   if(!form||form!==editableForm())return;
   if(event.target.matches('textarea'))updateEditor(event.target);
@@ -507,7 +534,10 @@ document.addEventListener('submit',async(event)=>{
   event.preventDefault();const form=event.target,fd=new FormData(form),v=n=>String(fd.get(n)||'').trim(),error=$('.form-error',form),submit=event.submitter;
   if(submit)submit.disabled=true;if(error)error.textContent='';
   try {
-    if(form.id==='auth-form') {
+    if(form.id==='share-import-form'){
+      if(!requireAccount())return;const link=extractSharedLink(v('shared'));if(!link)throw new Error('没有找到有效的 http / https 网页链接，请检查分享内容。');if(!v('title'))throw new Error('写一个标题，方便以后找到这条发现。');
+      captureModal({title:v('title'),source:link.url,sourcePlatform:v('platform')||link.platform,sourceAuthor:v('author'),content:v('summary'),type:'knowledge'});return;
+    }else if(form.id==='auth-form') {
       const password=String(fd.get('password')||'');
       if(form.dataset.login==='true'){storedRaw=localStorage.getItem(VAULT_KEY);const result=await unseal(JSON.parse(storedRaw),password);data=migrateDrafts(result.data);key=result.key;salt=result.salt;}
       else {if(localStorage.getItem(VAULT_KEY))throw new Error('已有空间，请先登录或从备份恢复。');if(password.length<10)throw new Error('请至少设置 10 位密码。');if(password!==String(fd.get('confirm')))throw new Error('两次输入的密码不一致。');if(!v('name'))throw new Error('请写一个称呼。');const result=await createKey(password);key=result.key;salt=result.salt;data=freshData(v('name'));storedRaw=null;}
@@ -528,7 +558,7 @@ document.addEventListener('submit',async(event)=>{
       }else if(form.id==='entry-form') {
         if(!v('title'))throw new Error('给这颗种子起个名字吧。');if(v('source')&&!safeUrl(v('source')))throw new Error('请填写 http 或 https 原文链接。');
         if(v('stage')==='understood'&&(!v('opinion')||!v('fact')||!v('boundary'))) { $('.thinking-fields',form).open=true;throw new Error('“能讲清”需要自己的解释、支持的证据，以及适用边界。先补充这三点，或选择“在思考”。'); }
-        const old=data.entries.find(e=>e.id===form.dataset.id),e={id:old?.id||uid(),date:old?.date||dayKey(),title:v('title'),domain:v('domain'),type:v('type'),source:v('source'),content:v('content'),stage:v('stage'),tags:v('tags').split(/[,，]/).map(t=>t.trim()).filter(Boolean).slice(0,12),fact:v('fact'),opinion:v('opinion'),boundary:v('boundary'),rule:v('rule'),question:v('question'),reviewCount:old?.reviewCount||0,nextReview:old?.stage!=='inbox'&&old?.nextReview?old.nextReview:addDays(dayKey(),1)};
+        const old=data.entries.find(e=>e.id===form.dataset.id),e={id:old?.id||uid(),date:old?.date||dayKey(),title:v('title'),domain:v('domain'),type:v('type'),source:v('source'),sourcePlatform:v('sourcePlatform')||detectPlatform(v('source')),sourceAuthor:v('sourceAuthor'),content:v('content'),stage:v('stage'),tags:v('tags').split(/[,，]/).map(t=>t.trim()).filter(Boolean).slice(0,12),fact:v('fact'),opinion:v('opinion'),boundary:v('boundary'),rule:v('rule'),question:v('question'),reviewCount:old?.reviewCount||0,nextReview:old?.stage!=='inbox'&&old?.nextReview?old.nextReview:addDays(dayKey(),1)};
         data.entries=old?data.entries.map(x=>x.id===e.id?e:x):[...data.entries,e];
       }else if(form.id==='weekly-form') {
         if(!v('title')||!v('insight'))throw new Error('请写下问题和你目前的解释。');const old=data.reviews.find(r=>r.id===form.dataset.id),r={id:old?.id||uid(),date:old?.date||dayKey(),title:v('title'),before:v('before'),evidence:v('evidence'),insight:v('insight'),boundary:v('boundary'),next:v('next')};data.reviews=old?data.reviews.map(x=>x.id===r.id?r:x):[...data.reviews,r];

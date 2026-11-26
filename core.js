@@ -33,7 +33,7 @@ export function validateData(data) {
   for (const entry of data.entries) {
     if (!entry || typeof entry.id !== 'string' || typeof entry.title !== 'string' || typeof entry.content !== 'string' || typeof entry.domain !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(entry.date) || !['inbox', 'thinking', 'understood'].includes(entry.stage) || !Number.isInteger(entry.reviewCount) || entry.reviewCount < 0 || typeof entry.nextReview !== 'string' || !Array.isArray(entry.tags) || entry.tags.some(t => typeof t !== 'string')) throw new Error('知识卡片格式无效。');
     if (!validDate(entry.date) || !validDate(entry.nextReview)) throw new Error('卡片日期无效。');
-    for (const field of ['fact','opinion','boundary','question','rule','source']) if (entry[field] !== undefined && typeof entry[field] !== 'string') throw new Error('卡片文本格式无效。');
+    for (const field of ['fact','opinion','boundary','question','rule','source','sourcePlatform','sourceAuthor']) if (entry[field] !== undefined && typeof entry[field] !== 'string') throw new Error('卡片文本格式无效。');
   }
   for (const journal of data.journals) if (!journal || !validDate(journal.date) || typeof journal.experience !== 'string' || typeof journal.thought !== 'string' || typeof journal.takeaway !== 'string') throw new Error('日记格式无效。');
   for (const review of data.reviews) if (!review || !validDate(review.date) || typeof review.insight !== 'string') throw new Error('复盘格式无效。');
