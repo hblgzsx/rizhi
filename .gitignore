@@ -1,0 +1,9 @@
+node_modules/
+.env*
+!.env.example
+test-results/
+public_build/
+release/
+*.log
+*.vault.json
+.DS_Store
