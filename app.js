@@ -223,7 +223,7 @@ function openWriter(title,subtitle,content) {
   if(location.hash!==`#${route}`)history.pushState({writerFrom:from},'',`#${route}`);
   page=route;document.title=`${label} · 日知写作间`;
   $('.skip-link').href='#writer-main';window.scrollTo({top:0});
-  setTimeout(()=>{const target=titleField||form.elements.namedItem(primaryName);target?.focus({preventScroll:true});},30);
+  const initialField=titleField||form.elements.namedItem(primaryName);initialField?.focus({preventScroll:true});
 }
 function removeWriter() {
   flushDraft();currentDraftKey='';editorDirty=false;writerState=null;$('#writer-root').innerHTML='';document.body.classList.remove('writer-open','writer-previewing');$('.skip-link').href='#main';
