@@ -57,7 +57,10 @@ elseif ($LASTEXITCODE -ne 0) { throw 'Unable to inspect staged changes.' }
 if (-not $remoteExists) {
   Invoke-Checked 'gh' @('repo','create',$repository,'--public','--description','日知：记录生活、理解世界，深耕人工智能与计算机。','--source','.','--remote','origin')
 }
-Invoke-Checked 'git' @('push','-u','origin','main')
+# HTTPS works on networks where outbound SSH is blocked. The helper reads the
+# existing CLI login without writing a token into Git configuration or files.
+Invoke-Checked 'git' @('remote','set-url','origin','https://github.com/hblgzsx/rizhi.git')
+Invoke-Checked 'git' @('-c','credential.helper=','-c','credential.helper=!gh auth git-credential','push','-u','origin','main')
 $siteUrl = & gh api "repos/$repository/pages" --jq '.html_url' 2>$null
 if ($LASTEXITCODE -ne 0) {
   Invoke-Checked 'gh' @('api','--method','POST',"repos/$repository/pages",'-f','build_type=workflow')
